@@ -39,8 +39,11 @@ def get_article_meta(soup):
 
     if article.find('contrib-group'):
         authors = article.find('contrib-group').find_all('contrib')
-        authors = [{'type': contrib.attrs, 'name': {name.name: name.text for name in contrib.find('name').children}} for
-                   contrib in authors]
+        if authors:
+            authors = [{'type': contrib.attrs, 'name': {name.name: name.text for name in contrib.find('name').children}}
+                       for contrib in authors if contrib.find('name')]
+        else:
+            authors = []
         aff = [str(item) for item in article.find('contrib-group').find_all('aff')]  # 没想好怎么处理机构
     else:
         authors = []
