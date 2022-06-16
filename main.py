@@ -95,13 +95,38 @@ def get_simple_data(data_path, name):
             with open(file_path) as fr:
                 sample = fr.readlines()
             soup = BeautifulSoup(''.join(sample), ["lxml-xml"])
+            try:
+                temp_ref = get_valid_ref_list(soup)
+                temp_pub = get_article_meta(soup)
+                cur_pmc = temp_pub['pmc']
+                ref_dict[cur_pmc] = temp_ref
+                pub_dict[cur_pmc] = temp_pub
+            except Exception as e:
+                print(e)
+            finally:
+                continue
+    json.dump(ref_dict, open('./data/{}.ref'.format(name), 'w+', encoding='utf-8'))
+    json.dump(pub_dict, open('./data/{}.pub'.format(name), 'w+', encoding='utf-8'))
+
+
+def get_lines_data(data_path, name):
+    folder_list = os.listdir(data_path)
+    ref_fr = open('./data/{}.ref'.format(name), 'w+', encoding='utf-8')
+    pub_fr = open('./data/{}.pub'.format(name), 'w+', encoding='utf-8')
+    for folder in folder_list:
+        folder_path = data_path + folder
+        files = os.listdir(folder_path)
+        for file in files:
+            file_path = folder_path + '/' + file
+            #         print(file_path)
+            with open(file_path) as fr:
+                sample = fr.readlines()
+            soup = BeautifulSoup(''.join(sample), ["lxml-xml"])
             temp_ref = get_valid_ref_list(soup)
             temp_pub = get_article_meta(soup)
             cur_pmc = temp_pub['pmc']
-            ref_dict[cur_pmc] = temp_ref
-            pub_dict[cur_pmc] = temp_pub
-    json.dump(ref_dict, open('./data/{}.ref'.format(name), 'w+', encoding='utf-8'))
-    json.dump(pub_dict, open('./data/{}.pub'.format(name), 'w+', encoding='utf-8'))
+            ref_fr.write(str(temp_ref) + '\n')
+            pub_fr.write(str(temp_pub) + '\n')
 
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
@@ -116,3 +141,4 @@ if __name__ == "__main__":
         print('This is a test process.')
     elif args.phase == 'simple_data':
         get_simple_data(args.data_path, args.name)
+        print('simple data done')
