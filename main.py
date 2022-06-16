@@ -2,7 +2,7 @@ import argparse
 import datetime
 import os
 import pandas as pd
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 import json
 
 def get_valid_ref_list(soup):
@@ -40,7 +40,8 @@ def get_article_meta(soup):
     if article.find('contrib-group'):
         authors = article.find('contrib-group').find_all('contrib')
         if authors:
-            authors = [{'type': contrib.attrs, 'name': {name.name: name.text for name in contrib.find('name').children}}
+            authors = [{'type': contrib.attrs, 'name': {name.name: name.text for name in contrib.find('name').children
+                                                        if isinstance(name, Tag)}}
                        for contrib in authors if contrib.find('name')]
         else:
             authors = []
