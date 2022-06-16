@@ -52,11 +52,15 @@ def get_article_meta(soup):
 
     cat = article.find('article-categories').subject.text if article.find('article-categories') else None
     ids = {arc_id.attrs['pub-id-type']: arc_id.text for arc_id in article.find_all('article-id')}
-    title = article.find('article-title').text
+    title = article.find('article-title').text if article.find('article-title') else None
 
     journal = soup.front.find('journal-meta')
-    journal_ids = {jid.attrs['journal-id-type']: jid.text for jid in journal.find_all('journal-id')}
-    journal_title = journal.find('journal-title').text
+    if journal:
+        journal_ids = {jid.attrs['journal-id-type']: jid.text for jid in journal.find_all('journal-id')}
+        journal_title = journal.find('journal-title').text if journal.find('journal-title') else None
+    else:
+        journal_ids = {}
+        journal_title = None
 
     if soup.body:
         full = len(soup.body.find_all('xref', attrs={'ref-type': 'bibr'})) > 0
