@@ -113,22 +113,28 @@ def get_simple_data(data_path, name):
 
 def get_lines_data(data_path, name):
     folder_list = os.listdir(data_path)
-    ref_fr = open('./data/{}.ref'.format(name), 'w+', encoding='utf-8')
-    pub_fr = open('./data/{}.pub'.format(name), 'w+', encoding='utf-8')
+    ref_fr = open('./data/{}_lines.ref'.format(name), 'w+', encoding='utf-8')
+    pub_fr = open('./data/{}_lines.pub'.format(name), 'w+', encoding='utf-8')
     for folder in folder_list:
         folder_path = data_path + folder
         files = os.listdir(folder_path)
         for file in files:
             file_path = folder_path + '/' + file
             #         print(file_path)
-            with open(file_path) as fr:
-                sample = fr.readlines()
-            soup = BeautifulSoup(''.join(sample), ["lxml-xml"])
-            temp_ref = get_valid_ref_list(soup)
-            temp_pub = get_article_meta(soup)
-            cur_pmc = temp_pub['pmc']
-            ref_fr.write(str(temp_ref) + '\n')
-            pub_fr.write(str(temp_pub) + '\n')
+            try:
+                with open(file_path) as fr:
+                    sample = fr.readlines()
+                soup = BeautifulSoup(''.join(sample), ["lxml-xml"])
+                temp_ref = get_valid_ref_list(soup)
+                temp_pub = get_article_meta(soup)
+                cur_pmc = temp_pub['pmc']
+                ref_fr.write(str(temp_ref) + '\n')
+                pub_fr.write(str(temp_pub) + '\n')
+            except Exception as e:
+                print(e)
+                print(file_path)
+            finally:
+                continue
 
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
