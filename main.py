@@ -92,10 +92,11 @@ def get_simple_data(data_path, name):
         for file in files:
             file_path = folder_path + '/' + file
             #         print(file_path)
-            with open(file_path) as fr:
-                sample = fr.readlines()
-            soup = BeautifulSoup(''.join(sample), ["lxml-xml"])
             try:
+                with open(file_path) as fr:
+                    sample = fr.readlines()
+                soup = BeautifulSoup(''.join(sample), ["lxml-xml"])
+
                 temp_ref = get_valid_ref_list(soup)
                 temp_pub = get_article_meta(soup)
                 cur_pmc = temp_pub['pmc']
@@ -103,6 +104,7 @@ def get_simple_data(data_path, name):
                 pub_dict[cur_pmc] = temp_pub
             except Exception as e:
                 print(e)
+                print(file_path)
             finally:
                 continue
     json.dump(ref_dict, open('./data/{}.ref'.format(name), 'w+', encoding='utf-8'))
