@@ -150,3 +150,6 @@ if __name__ == "__main__":
     elif args.phase == 'simple_data':
         get_simple_data(args.data_path, args.name)
         print('simple data done')
+    elif args.phase == 'lines_data':
+        get_lines_data(args.data_path, args.name)
+        print('lines data done')
