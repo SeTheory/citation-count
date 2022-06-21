@@ -113,8 +113,8 @@ def get_simple_data(data_path, name):
 
 def get_lines_data(data_path, name):
     folder_list = os.listdir(data_path)
-    ref_fr = open('./data/{}_lines.ref'.format(name), 'w+', encoding='utf-8')
-    pub_fr = open('./data/{}_lines.pub'.format(name), 'w+', encoding='utf-8')
+    ref_fr = open('./data/pubmed/{}_lines.ref'.format(name), 'w+', encoding='utf-8')
+    pub_fr = open('./data/pubmed/{}_lines.pub'.format(name), 'w+', encoding='utf-8')
     count = 0
     for folder in folder_list:
         folder_path = data_path + folder
@@ -129,6 +129,7 @@ def get_lines_data(data_path, name):
                 soup = BeautifulSoup(''.join(sample), ["lxml-xml"])
                 temp_ref = get_valid_ref_list(soup)
                 temp_pub = get_article_meta(soup)
+                temp_pub['file_path'] = file_path
                 cur_pmc = temp_pub['pmc']
                 ref_fr.write(str({'pmc': cur_pmc, 'ref': temp_ref}) + '\n')
                 pub_fr.write(str({'pmc': cur_pmc, 'pub': temp_pub}) + '\n')
