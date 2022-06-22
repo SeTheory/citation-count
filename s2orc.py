@@ -5,13 +5,14 @@ import os
 
 
 def reorganize_data(data_path):
-    files = os.listdir(data_path)
+    files = os.listdir(data_path + 'metadata/')
     info_fw = open(data_path + 'all_info.lines', 'w+')
     ab_fw = open(data_path + 'all_abstract.lines', 'w+')
     citation_fw = open(data_path + 'all_cite.lines', 'w+')
     reference_fw = open(data_path + 'all_ref.lines', 'w+')
     for file in files:
-        with open(data_path + file) as fr:
+        with open(data_path + 'metadata/' + file) as fr:
+            print(file)
             for line in fr:
                 temp_data = json.loads(line)
                 temp_info = {
@@ -47,6 +48,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.phase == 'test':
         print('This is a test process.')
+        reorganize_data('./data/')
     if args.phase == 'reorganize_data':
         reorganize_data(args.data_path)
         print('reorganize data done.')
