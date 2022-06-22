@@ -37,6 +37,27 @@ def reorganize_data(data_path):
     reference_fw.close()
 
 
+def cite_year_count(data_path):
+    with open(data_path + 'all_cite.lines') as fr:
+        cite_data = list(map(lambda x: eval(x), fr.readlines()))
+    with open(data_path + 'all_info.lines') as fr:
+        info_data = list(map(lambda x: eval(x), fr.readlines()))
+    cite_dict = {x[0]: x[1] for x in cite_data}
+    json.dump(cite_dict, open(data_path + 'all_cite_dict.json', 'w+'))
+    del cite_data
+    info_dict = {}
+    for i in range(len(info_data)):
+        cur_data = info_data.pop()
+        info_dict[cur_data['paper_id']] = cur_data
+    json.dump(info_dict, open(data_path + 'all_info_dict.json', 'w+'))
+    year_dict = {}
+    for paper in cite_dict:
+        cur_valid = [paper for paper in cite_dict[paper] if paper in info_dict]
+        year_dict[paper] = list(filter(lambda x: x, map(lambda x: info_dict[x]['year'], cur_valid)))
+    json.dump(year_dict, open(data_path + 'all_cite_year.json', 'w+'))
+
+
+
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
     parser = argparse.ArgumentParser(description='Process some description.')
@@ -48,7 +69,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.phase == 'test':
         print('This is a test process.')
-        reorganize_data('./data/')
+        cite_year_count('./data/')
     if args.phase == 'reorganize_data':
         reorganize_data(args.data_path)
         print('reorganize data done.')
+    if args.phase == 'cite_year_count':
+        cite_year_count(args.data_path)
+        print('cite_year_count done.')
