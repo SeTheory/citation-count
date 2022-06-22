@@ -139,6 +139,85 @@ def get_lines_data(data_path, name):
             finally:
                 continue
 
+
+def get_pub_data(data_path):
+    pub_dict = {}
+    files_list = os.listdir(data_path)
+    files_list = [file for file in files_list if file.endswith('lines.pub')]
+    for file in files_list:
+        print(file)
+        with open(data_path + file, 'r', encoding='utf-8') as fr:
+            temp_data = list(map(lambda x: eval(x), fr.readlines()))
+        for paper in temp_data:
+            pub_dict[paper['pmc']] = paper['pub']
+    json.dump(pub_dict, open(data_path + 'all_pub_data.json', 'w+'))
+
+    doi_trans = {}
+    pmid_trans = {}
+    for paper in pub_dict.values():
+        if 'pmid' in paper['ids']:
+            pmid_trans[paper['ids']['pmid']] = paper['pmc']
+        if 'doi' in paper['ids']:
+            doi_trans[paper['ids']['doi']] = paper['pmc']
+    json.dump(pmid_trans, open(data_path + 'pmid_trans.json', 'w+'))
+    json.dump(doi_trans, open(data_path + 'doi_trans.json', 'w+'))
+
+    with open(data_path + 'all_ids.list', 'w+') as fw:
+        fw.writelines([pmc + '\n' for pmc in pub_dict])
+
+
+def get_ref_data(data_path):
+    ref_dict = {}
+    files_list = os.listdir(data_path)
+    files_list = [file for file in files_list if file.endswith('lines.ref')]
+    doi_trans = json.load(open(data_path + 'doi_trans.json'))
+    pmid_trans = json.load(open(data_path + 'pmid_trans.json'))
+
+    print('loading data...')
+    for file in files_list:
+        print(file)
+        with open(data_path + file, 'r', encoding='utf-8') as fr:
+            temp_data = list(map(lambda x: eval(x), fr.readlines()))
+        for paper in temp_data:
+            ref_dict[paper['pmc']] = paper['ref']
+
+    dealt_ref = {}
+    print('dealting data...')
+    with open(data_path + 'all_ids.list', 'r+') as fr:
+        all_paper_pmc = list(map(lambda x: x.strip(), fr.readlines()))
+    for paper in ref_dict:
+        ref_list = []
+        temp_ref = ref_dict[paper].values()
+        for ref_paper in temp_ref:
+            if 'pmcid' in ref_paper:
+                if ref_paper['pmcid'] in all_paper_pmc:
+                    ref_list.append(ref_paper['pmcid'])
+            elif 'pmid' in ref_paper:
+                if ref_paper['pmid'] in pmid_trans:
+                    ref_list.append(pmid_trans[ref_paper['pmid']])
+            elif 'doi' in ref_paper:
+                if ref_paper['doi'] in doi_trans:
+                    ref_list.append(doi_trans[ref_paper['doi']])
+        dealt_ref[paper] = ref_list
+
+    json.dump(dealt_ref, open(data_path + 'all_ref_data.json', 'w+'))
+
+    print('dealting citing data...')
+    cite_dict = {paper: [] for paper in all_paper_pmc}
+    for (paper, ref_list) in dealt_ref.items():
+        for ref_paper in ref_list:
+            cite_dict[ref_paper].append(paper)
+    json.dump(cite_dict, open(data_path + 'all_cite_data.json', 'w+'))
+
+    del ref_dict
+
+    year_dict = {}
+    pub_dict = json.load(open(data_path + 'all_pub_data.json', 'r'))
+    for paper in cite_dict:
+        year_dict[paper] = list(map(lambda x: int(pub_dict[x]['pub_date']['year']), cite_dict[paper]))
+    json.dump(year_dict, open(data_path + 'cite_year_data.json', 'w+'))
+
+
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
     parser = argparse.ArgumentParser(description='Process some description.')
@@ -150,9 +229,17 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.phase == 'test':
         print('This is a test process.')
+        # get_pub_data('./data/')
+        get_ref_data('./data/')
     elif args.phase == 'simple_data':
         get_simple_data(args.data_path, args.name)
         print('simple data done')
     elif args.phase == 'lines_data':
         get_lines_data(args.data_path, args.name)
         print('lines data done')
+    elif args.phase == 'pub_data':
+        get_pub_data(args.data_path)
+        print('pub data done')
+    elif args.phase == 'ref_data':
+        get_ref_data(args.data_path)
+        print('ref data done')
