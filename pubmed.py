@@ -220,10 +220,30 @@ def get_ref_data(data_path):
 
 def show_data(data_path):
     data = json.load(open(data_path + 'all_pub_data.json', 'r'))
+    print(list(data.values())[0])
+    print(list(data.values())[0].keys())
+    data = map(lambda x: {
+        'pmc': x['pmc'],
+        'type': x['cat'],
+        'aff': len(x['aff']),
+        'authors': len(x['authors']),
+        'pub_date': int(x['pub_date']['year']),
+        'abstract': len(x['abstract'].split(' ')) >= 20,
+        'kwds': len(x['kwds']),
+        'journal': len(x['journal']['ids']) > 0,
+        'full': x['full']
+    }, data.values())
+
     df = pd.DataFrame(data)
     print(df.shape)
     print(df.columns)
-    print(df.describe())
+    print(df.describe(percentiles=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98]))
+    print(df.groupby('type').count().sort_values(by='pmc', ascending=False)['pmc'])
+    df.groupby('type').count()['pmc'].to_csv(data_path + 'type_count.csv')
+    print(df.groupby('pub_date').count().sort_values(by='pmc', ascending=False)['pmc'])
+    df.groupby('pub_date').count()['pmc'].to_csv(data_path + 'pub_date_count.csv')
+    print(df.groupby('abstract').count().sort_values(by='pmc', ascending=False)['pmc'])
+    print(df.groupby('full').count().sort_values(by='pmc', ascending=False)['pmc'])
 
 
 if __name__ == "__main__":
@@ -238,7 +258,7 @@ if __name__ == "__main__":
     if args.phase == 'test':
         print('This is a test process.')
         # get_pub_data('./data/')
-        get_ref_data('./data/')
+        show_data('./data/')
     elif args.phase == 'simple_data':
         get_simple_data(args.data_path, args.name)
         print('simple data done')
