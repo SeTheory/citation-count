@@ -76,47 +76,35 @@ def cite_year_count(data_path):
 
 
 def get_split_info_dict(data_path):
-    # temp_info = {
-    #     'paper_id': temp_data['paper_id'],
-    #     'title': temp_data['title'],
-    #     'authors': temp_data['authors'],
-    #     'year': temp_data['year'],
-    #     'journal': temp_data['journal'],
-    #     'venue': temp_data['venue'],
-    #     'mag_field_of_study': temp_data['mag_field_of_study'],
-    #     'citations': len(temp_data['inbound_citations']),
-    #     'has_pdf_parse': temp_data['has_pdf_parse'],
-    #     'file_name': file
-    # }
-    # temp_title_fw = open(data_path + 'temp_title.lines', 'w+')
-    # temp_authors_fw = open(data_path + 'temp_authors.lines', 'w+')
-    # temp_source_fw = open(data_path + 'temp_source.lines', 'w+')
-    # temp_cat_fw = open(data_path + 'temp_cat.lines', 'w+')
-    # temp_citation_count_fw = open(data_path + 'temp_citation_count.lines', 'w+')
-    # temp_pdf_fw = open(data_path + 'temp_pdf.lines', 'w+')
-    # with open(data_path + 'all_info.lines') as fr:
-    #     for line in fr:
-    #         temp_data = eval(line)
-    #         temp_title_fw.write(str({'id': temp_data['paper_id'], 'values': temp_data['title']}) + '\n')
-    #         temp_authors_fw.write(str({'id': temp_data['paper_id'], 'values': temp_data['authors']}) + '\n')
-    #         temp_source_fw.write(str({'id': temp_data['paper_id'],
-    #                                   'values': {'journal': temp_data['journal'],
-    #                                              'venue': temp_data['venue']
-    #                                              }}) + '\n')
-    #         temp_cat_fw.write(str({'id': temp_data['paper_id'],
-    #                                'values': temp_data['mag_field_of_study']}) + '\n')
-    #         temp_citation_count_fw.write(str({'id': temp_data['paper_id'], 'values': temp_data['citations']}) + '\n')
-    #         temp_pdf_fw.write(str({'id': temp_data['paper_id'],
-    #                                'values': {
-    #                                    'has_pdf_parse': temp_data['has_pdf_parse'],
-    #                                    'file_name': temp_data['file_name']
-    #                                }}) + '\n')
-    # temp_title_fw.close()
-    # temp_authors_fw.close()
-    # temp_source_fw.close()
-    # temp_cat_fw.close()
-    # temp_citation_count_fw.close()
-    # temp_pdf_fw.close()
+    temp_title_fw = open(data_path + 'temp_title.lines', 'w+')
+    temp_authors_fw = open(data_path + 'temp_authors.lines', 'w+')
+    temp_source_fw = open(data_path + 'temp_source.lines', 'w+')
+    temp_cat_fw = open(data_path + 'temp_cat.lines', 'w+')
+    temp_citation_count_fw = open(data_path + 'temp_citation_count.lines', 'w+')
+    temp_pdf_fw = open(data_path + 'temp_pdf.lines', 'w+')
+    with open(data_path + 'all_info.lines') as fr:
+        for line in fr:
+            temp_data = eval(line)
+            temp_title_fw.write(str({'id': temp_data['paper_id'], 'values': temp_data['title']}) + '\n')
+            temp_authors_fw.write(str({'id': temp_data['paper_id'], 'values': temp_data['authors']}) + '\n')
+            temp_source_fw.write(str({'id': temp_data['paper_id'],
+                                      'values': {'journal': temp_data['journal'],
+                                                 'venue': temp_data['venue']
+                                                 }}) + '\n')
+            temp_cat_fw.write(str({'id': temp_data['paper_id'],
+                                   'values': temp_data['mag_field_of_study']}) + '\n')
+            temp_citation_count_fw.write(str({'id': temp_data['paper_id'], 'values': temp_data['citations']}) + '\n')
+            temp_pdf_fw.write(str({'id': temp_data['paper_id'],
+                                   'values': {
+                                       'has_pdf_parse': temp_data['has_pdf_parse'],
+                                       'file_name': temp_data['file_name']
+                                   }}) + '\n')
+    temp_title_fw.close()
+    temp_authors_fw.close()
+    temp_source_fw.close()
+    temp_cat_fw.close()
+    temp_citation_count_fw.close()
+    temp_pdf_fw.close()
 
     files = ['title', 'authors', 'source', 'cat', 'citation_count', 'pdf']
     for file in files:
