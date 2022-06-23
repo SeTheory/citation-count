@@ -46,19 +46,33 @@ def get_info_dict(data_path):
     json.dump(info_dict, open(data_path + 'all_info_dict.json', 'w+'))
 
 
-def cite_year_count(data_path):
+def get_cite_dict(data_path):
     cite_dict = {}
     with open(data_path + 'all_cite.lines') as fr:
         for line in fr:
             temp_data = eval(line)
             cite_dict[temp_data[0]] = temp_data[1]
     json.dump(cite_dict, open(data_path + 'all_cite_dict.json', 'w+'))
+
+
+def cite_year_count(data_path):
     year_dict = {}
-    info_dict = json.load(open(data_path + 'all_info_dict.json', 'r'))
+    cite_year_dict = {}
+    # info_dict = json.load(open(data_path + 'all_info_dict.json', 'r'))
+    with open(data_path + 'all_info.lines') as fr:
+        for line in fr:
+            temp_data = eval(line)
+            year_dict[temp_data['paper_id']] = temp_data['year']
+    json.dump(year_dict, open(data_path + 'all_year_dict.json', 'w+'))
+
+    # for paper in cite_dict:
+    #     cur_valid = [paper for paper in cite_dict[paper] if paper in info_dict]
+    #     year_dict[paper] = list(filter(lambda x: x, map(lambda x: info_dict[x]['year'], cur_valid)))
+    cite_dict = json.load(open(data_path + 'all_cite_dict.json', 'r'))
     for paper in cite_dict:
-        cur_valid = [paper for paper in cite_dict[paper] if paper in info_dict]
-        year_dict[paper] = list(filter(lambda x: x, map(lambda x: info_dict[x]['year'], cur_valid)))
-    json.dump(year_dict, open(data_path + 'all_cite_year.json', 'w+'))
+        cur_valid = [paper for paper in cite_dict[paper] if paper in year_dict]
+        cite_year_dict[paper] = list(filter(lambda x: x, map(lambda x: year_dict[x], cur_valid)))
+    json.dump(cite_year_dict, open(data_path + 'all_cite_year.json', 'w+'))
 
 
 
