@@ -218,6 +218,14 @@ def get_ref_data(data_path):
     json.dump(year_dict, open(data_path + 'cite_year_data.json', 'w+'))
 
 
+def show_data(data_path):
+    data = json.load(open(data_path + 'all_pub_data.json', 'r'))
+    df = pd.DataFrame(data)
+    print(df.shape)
+    print(df.columns)
+    print(df.describe())
+
+
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
     parser = argparse.ArgumentParser(description='Process some description.')

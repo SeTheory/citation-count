@@ -76,6 +76,7 @@ def cite_year_count(data_path):
 
 
 
+
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
     parser = argparse.ArgumentParser(description='Process some description.')
@@ -95,6 +96,9 @@ if __name__ == "__main__":
     elif args.phase == 'get_info_dict':
         get_info_dict(args.data_path)
         print('get_info_dict done.')
+    elif args.phase == 'get_cite_dict':
+        get_cite_dict(args.data_path)
+        print('get_cite_dict done.')
     elif args.phase == 'cite_year_count':
         cite_year_count(args.data_path)
         print('cite_year_count done.')
