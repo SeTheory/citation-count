@@ -239,7 +239,7 @@ def show_data(data_path):
     print(df.columns)
     print(df.describe(percentiles=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98]))
     print(df.groupby('type').count().sort_values(by='pmc', ascending=False)['pmc'])
-    df.groupby('type').count()['pmc'].to_csv(data_path + 'type_count.csv')
+    df.groupby('type').count().sort_values(by='pmc', ascending=False)['pmc'].to_csv(data_path + 'type_count.csv')
     print(df.groupby('pub_date').count().sort_values(by='pmc', ascending=False)['pmc'])
     df.groupby('pub_date').count()['pmc'].to_csv(data_path + 'pub_date_count.csv')
     print(df.groupby('abstract').count().sort_values(by='pmc', ascending=False)['pmc'])
