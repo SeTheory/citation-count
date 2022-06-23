@@ -251,3 +251,6 @@ if __name__ == "__main__":
     elif args.phase == 'ref_data':
         get_ref_data(args.data_path)
         print('ref data done')
+    elif args.phase == 'show_data':
+        show_data(args.data_path)
+        print('show data done')
