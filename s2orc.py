@@ -175,18 +175,19 @@ def get_count_detail(input_dict, max_value, file_name, sort_by_count=False):
 
 
 def show_data(data_path):
-    count_dict = {}
-    authors_dict = json.load(open(data_path + 'all_authors_dict.json', 'r'))
-    count_sum = len(authors_dict)
-    for authors_list in authors_dict.values():
-        count = len(authors_list) if isinstance(authors_list, list) else 0
-        if count in count_dict:
-            count_dict[count] += 1
-        else:
-            count_dict[count] = 1
-    del authors_dict
-    get_count_detail(count_dict, count_sum, data_path + 'authors_count.csv')
-    print('authors done')
+    # 暂时去除作者
+    # count_dict = {}
+    # authors_dict = json.load(open(data_path + 'all_authors_dict.json', 'r'))
+    # count_sum = len(authors_dict)
+    # for authors_list in authors_dict.values():
+    #     count = len(authors_list) if isinstance(authors_list, list) else 0
+    #     if count in count_dict:
+    #         count_dict[count] += 1
+    #     else:
+    #         count_dict[count] = 1
+    # del authors_dict
+    # get_count_detail(count_dict, count_sum, data_path + 'authors_count.csv')
+    # print('authors done')
 
     count_dict = {}
     pdf_dict = json.load(open(data_path + 'all_pdf_dict.json', 'r'))
@@ -210,11 +211,10 @@ def show_data(data_path):
         else:
             count_dict[count] = 1
 
-
         if isinstance(cat_list, list):
             for cat in cat_list:
                 if cat in cat_count_dict:
-                    cat_count_dict[cat] +=1
+                    cat_count_dict[cat] += 1
                 else:
                     cat_count_dict[cat] = 1
     get_count_detail(count_dict, count_sum, data_path + 'cat_count.csv')
