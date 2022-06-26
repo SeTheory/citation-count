@@ -271,6 +271,25 @@ def show_data(data_path):
     get_count_detail(venue_dict, count_sum, data_path + 'venue_count.csv', True)
 
 
+def show_abstract_stats(data_path):
+    # count = 0
+    count_dict = {0: 0, 1: 1}
+    with open(data_path + 'all_abstract.lines', 'r') as fr:
+        for line in fr:
+            temp_abstract = eval(line)[1]
+            if temp_abstract:
+                ab_length = len(temp_abstract.split(' '))
+            else:
+                ab_length = 0
+            if ab_length >= 20:
+                count_dict[1] += 1
+            else:
+                count_dict[0] += 1
+            # count += 1
+    print(count_dict)
+
+
+
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
     parser = argparse.ArgumentParser(description='Process some description.')
@@ -285,7 +304,8 @@ if __name__ == "__main__":
         # get_info_dict('./data/')
         # cite_year_count('./data/')
         # get_split_info_dict('./data/')
-        show_data('./data/')
+        # show_data('./data')
+        show_abstract_stats('./data/')
     elif args.phase == 'reorganize_data':
         reorganize_data(args.data_path)
         print('reorganize data done.')
@@ -304,3 +324,6 @@ if __name__ == "__main__":
     elif args.phase == 'show_data':
         show_data(args.data_path)
         print('show_data done.')
+    elif args.phase == 'show_abstract_stats':
+        show_abstract_stats(args.data_path)
+        print('show_abstract_stats done.')
