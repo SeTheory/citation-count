@@ -3,6 +3,8 @@ import datetime
 import json
 import os
 
+import pandas as pd
+
 
 def reorganize_data(data_path):
     files = os.listdir(data_path + 'metadata/')
@@ -117,6 +119,158 @@ def get_split_info_dict(data_path):
         json.dump(temp_dict, open(data_path + 'all_{}_dict.json'.format(file), 'w+'))
 
 
+# def show_data(data_path):
+#     # result_dict = {}
+#
+#     authors_dict = json.load(open(data_path + 'all_authors_dict.json', 'r'))
+#     result_dict = {paper_id: {'authors': len(authors_list) if isinstance(authors_list, list) else 0}
+#                    for (paper_id, authors_list) in authors_dict.items()}
+#     del authors_dict
+#     print('authors done')
+#
+#     pdf_dict = json.load(open(data_path + 'all_pdf_dict.json', 'r'))
+#     # pdf_values = {paper_id: values['has_pdf_parse'] for (paper_id, values) in pdf_dict.item()}
+#     for (paper_id, values) in pdf_dict.items():
+#         result_dict[paper_id]['full'] = values['has_pdf_parse']
+#     del pdf_dict
+#     print('pdf done')
+#
+#     cat_dict = json.load(open(data_path + 'all_cat_dict.json', 'r'))
+#     # cat_values = {paper_id: len(cat_list) for (paper_id, cat_list) in cat_dict.items()}
+#     for (paper_id, cat_list) in cat_dict.items():
+#         result_dict[paper_id]['cat'] = len(cat_list) if isinstance(cat_list, list) else 0
+#     del cat_dict
+#     print('cat done')
+#
+#     citation_dict = json.load(open(data_path + 'all_citation_count_dict.json', 'r'))
+#     for (paper_id, value) in citation_dict.items():
+#         result_dict[paper_id]['citation'] = value
+#     print('citation done')
+#
+#     year_dict = json.load(open(data_path + 'all_year_dict.json', 'r'))
+#     for (paper_id, value) in year_dict.items():
+#         result_dict[paper_id]['year'] = value
+#     print('year done')
+#
+#     df = pd.DataFrame(result_dict)
+#     print(df.describe())
+#
+#     print(df.groupby('year').count())
+#     df.groupby('year').count().to_csv(data_path + 'year_count.csv')
+#     print(df.groupby('full').count())
+#
+#     del df, result_dict
+def get_count_detail(input_dict, max_value, file_name, sort_by_count=False):
+    df = pd.DataFrame.from_dict(input_dict, orient='index')
+    df.columns = ['count']
+    if sort_by_count:
+        df = df.sort_values(by='count', ascending=False)
+    else:
+        df = df.sort_index()
+    df['count_cum'] = df['count'].cumsum()
+    df['percent'] = df['count'] / max_value
+    df['percent_cum'] = df['count_cum'] / max_value
+    print(df.head(10))
+    df.to_csv(file_name)
+
+
+def show_data(data_path):
+    count_dict = {}
+    authors_dict = json.load(open(data_path + 'all_authors_dict.json', 'r'))
+    count_sum = len(authors_dict)
+    for authors_list in authors_dict.values():
+        count = len(authors_list) if isinstance(authors_list, list) else 0
+        if count in count_dict:
+            count_dict[count] += 1
+        else:
+            count_dict[count] = 1
+    del authors_dict
+    get_count_detail(count_dict, count_sum, data_path + 'authors_count.csv')
+    print('authors done')
+
+    count_dict = {}
+    pdf_dict = json.load(open(data_path + 'all_pdf_dict.json', 'r'))
+    # pdf_values = {paper_id: values['has_pdf_parse'] for (paper_id, values) in pdf_dict.item()}
+    count_dict = {0: 0, 1: 0}
+    for values in pdf_dict.values():
+        count_dict[int(values['has_pdf_parse'])] += 1
+    print(count_dict)
+    del pdf_dict
+    print('pdf done')
+    #
+    count_dict = {}
+    cat_dict = json.load(open(data_path + 'all_cat_dict.json', 'r'))
+    # cat_values = {paper_id: len(cat_list) for (paper_id, cat_list) in cat_dict.items()}
+    cat_count_dict = {}
+    count_sum = len(cat_dict)
+    for cat_list in cat_dict.values():
+        count = len(cat_list) if isinstance(cat_list, list) else 0
+        if count in count_dict:
+            count_dict[count] += 1
+        else:
+            count_dict[count] = 1
+
+
+        if isinstance(cat_list, list):
+            for cat in cat_list:
+                if cat in cat_count_dict:
+                    cat_count_dict[cat] +=1
+                else:
+                    cat_count_dict[cat] = 1
+    get_count_detail(count_dict, count_sum, data_path + 'cat_count.csv')
+    get_count_detail(cat_count_dict, count_sum, data_path + 'cat_type_count.csv', True)
+    del cat_dict
+    del cat_count_dict
+    print('cat done')
+    #
+    count_dict = {}
+    citation_dict = json.load(open(data_path + 'all_citation_count_dict.json', 'r'))
+    count_sum = len(citation_dict)
+    for value in citation_dict.values():
+        count = value
+        if count in count_dict:
+            count_dict[count] += 1
+        else:
+            count_dict[count] = 1
+    get_count_detail(count_dict, count_sum, data_path + 'citation_count.csv')
+    del citation_dict
+    print('citation done')
+    #
+    count_dict = {}
+    year_dict = json.load(open(data_path + 'all_year_dict.json', 'r'))
+    count_sum = len(year_dict)
+    for value in year_dict.values():
+        count = value
+        if count in count_dict:
+            count_dict[count] += 1
+        else:
+            count_dict[count] = 1
+    get_count_detail(count_dict, count_sum, data_path + 'year_count.csv')
+    print('year done')
+    del year_dict
+
+    count_dict = {}
+    journal_dict = {}
+    venue_dict = {}
+    source_dict = json.load(open(data_path + 'all_source_dict.json', 'r'))
+    count_sum = len(source_dict)
+    for values in source_dict.values():
+        journal = values['journal']
+        if journal in journal_dict:
+            journal_dict[journal] += 1
+        else:
+            journal_dict[journal] = 1
+
+        venue = values['venue']
+        if venue in venue_dict:
+            venue_dict[venue] += 1
+        else:
+            venue_dict[venue] = 1
+    del source_dict
+    get_count_detail(journal_dict, count_sum, data_path + 'journal_count.csv', True)
+    get_count_detail(venue_dict, count_sum, data_path + 'venue_count.csv', True)
+
+
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
     parser = argparse.ArgumentParser(description='Process some description.')
@@ -130,7 +284,8 @@ if __name__ == "__main__":
         print('This is a test process.')
         # get_info_dict('./data/')
         # cite_year_count('./data/')
-        get_split_info_dict('./data/')
+        # get_split_info_dict('./data/')
+        show_data('./data/')
     elif args.phase == 'reorganize_data':
         reorganize_data(args.data_path)
         print('reorganize data done.')
