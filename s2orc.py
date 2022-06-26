@@ -301,3 +301,6 @@ if __name__ == "__main__":
     elif args.phase == 'get_split_info_dict':
         get_split_info_dict(args.data_path)
         print('get_split_info_dict done.')
+    elif args.phase == 'show_data':
+        show_data(args.data_path)
+        print('show_data done.')
