@@ -243,6 +243,7 @@ def show_data(data_path):
     print(df.groupby('pub_date').count().sort_values(by='pmc', ascending=False)['pmc'])
     df.groupby('pub_date').count()['pmc'].to_csv(data_path + 'pub_date_count.csv')
     print(df.groupby('abstract').count().sort_values(by='pmc', ascending=False)['pmc'])
+    print(df.groupby('journal').count().sort_values(by='pmc', ascending=False)['pmc'])
     print(df.groupby('full').count().sort_values(by='pmc', ascending=False)['pmc'])
 
 
