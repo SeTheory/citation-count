@@ -218,8 +218,10 @@ def get_ref_data(data_path):
     json.dump(year_dict, open(data_path + 'cite_year_data.json', 'w+'))
 
 
-def show_data(data_path):
+def show_data(data_path, time_range=None):
     data = json.load(open(data_path + 'all_pub_data.json', 'r'))
+    ref = json.load(open(data_path + 'all_ref_data.json', 'r'))
+    cite = json.load(open(data_path + 'all_cite_data.json', 'r'))
     print(list(data.values())[0])
     print(list(data.values())[0].keys())
     data = map(lambda x: {
@@ -231,17 +233,30 @@ def show_data(data_path):
         'abstract': len(x['abstract'].split(' ')) >= 20,
         'kwds': len(x['kwds']),
         'journal': len(x['journal']['ids']) > 0,
-        'full': x['full']
+        'full': x['full'],
+        'ref': len(ref[x['pmc']]),
+        'citations': len(cite[x['pmc']])
     }, data.values())
 
     df = pd.DataFrame(data)
+    if time_range:
+        print(df.shape)
+        df = df[(df['pub_date'] >= time_range[0])&(df['pub_date'] < time_range[1])]
+        df.groupby('type').count().sort_values(by='pmc', ascending=False)['pmc']\
+            .to_csv(data_path + 'stats_type_count_{}_{}.csv'.format(time_range[0], time_range[1]))
+        df.groupby('pub_date').count()['pmc']\
+            .to_csv(data_path + 'stats_year_count_{}_{}.csv'.format(time_range[0], time_range[1]))
+        print('good_paper:',
+        df[df.apply(lambda x: (x['ref'] >= 5) & (x['citations'] > 0) & (x['abstract']) & (x['kwds'] > 0), axis=1)].shape[0])
+    else:
+        df.groupby('type').count().sort_values(by='pmc', ascending=False)['pmc']\
+            .to_csv(data_path + 'stats_type_count.csv')
+        df.groupby('pub_date').count()['pmc'].to_csv(data_path + 'stats_year_count.csv')
     print(df.shape)
     print(df.columns)
     print(df.describe(percentiles=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98]))
     print(df.groupby('type').count().sort_values(by='pmc', ascending=False)['pmc'])
-    df.groupby('type').count().sort_values(by='pmc', ascending=False)['pmc'].to_csv(data_path + 'type_count.csv')
     print(df.groupby('pub_date').count().sort_values(by='pmc', ascending=False)['pmc'])
-    df.groupby('pub_date').count()['pmc'].to_csv(data_path + 'pub_date_count.csv')
     print(df.groupby('abstract').count().sort_values(by='pmc', ascending=False)['pmc'])
     print(df.groupby('journal').count().sort_values(by='pmc', ascending=False)['pmc'])
     print(df.groupby('full').count().sort_values(by='pmc', ascending=False)['pmc'])
@@ -259,7 +274,7 @@ if __name__ == "__main__":
     if args.phase == 'test':
         print('This is a test process.')
         # get_pub_data('./data/')
-        show_data('./data/')
+        show_data('./data/', [1980, 2021])
     elif args.phase == 'simple_data':
         get_simple_data(args.data_path, args.name)
         print('simple data done')
