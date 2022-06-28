@@ -4,6 +4,7 @@ import json
 import os
 
 import pandas as pd
+from collections import defaultdict
 
 
 def reorganize_data(data_path):
@@ -289,6 +290,79 @@ def show_abstract_stats(data_path):
     print(count_dict)
 
 
+def show_selected_stats(data_path, time_range):
+    files = os.listdir(data_path + 'metadata/')
+    all_count = 0
+    pdf_dict = {0: 0, 1: 0}
+    cat_dict = defaultdict(int)
+    citation_dict = defaultdict(int)
+    title_dict = {0: 0, 1: 0}
+    abstract_dict = {0: 0, 1: 0}
+    authors_dict = defaultdict(int)
+    journal_dict = defaultdict(int)
+    venue_dict = defaultdict(int)
+    # inbound_dict = defaultdict(int)
+    ref_dict = defaultdict(int)
+    good_paper_dict = {0: 0, 1: 0}
+
+    for file in files:
+        with open(data_path + 'metadata/' + file) as fr:
+            print(file)
+            for line in fr:
+                temp_data = json.loads(line)
+                year = temp_data['year'] if temp_data['year'] else 0
+                if (year >= time_range[0]) & (year < time_range[1]):
+                    all_count += 1
+                    # pdf
+                    pdf_dict[int(temp_data['has_pdf_parse'])] += 1
+                    # authors
+                    authors_dict[len(temp_data['authors'])] += 1
+                    # title
+                    useful_title = True if temp_data['title'] else False
+                    title_dict[int(useful_title)] += 1
+                    # abstract
+                    useful_abstract = len(temp_data['abstract'].split(' ')) >= 20 if temp_data['abstract'] else False
+                    abstract_dict[int(useful_abstract)] += 1
+                    # cat
+                    cat_list = temp_data['mag_field_of_study']
+                    if isinstance(cat_list, list):
+                        for cat in cat_list:
+                            cat_dict[cat] += 1
+                    # citation
+                    citation_dict[len(temp_data['inbound_citations'])] += 1
+                    ref_dict[len(temp_data['outbound_citations'])] += 1
+
+                    # journal
+                    journal_dict[temp_data['journal']] += 1
+                    # venue
+                    venue_dict[temp_data['venue']] += 1
+
+                    # good_paper
+                    if (len(temp_data['outbound_citations']) >= 5) & (len(temp_data['inbound_citations']) >= 0)\
+                            & useful_abstract & useful_title & isinstance(cat_list, list) \
+                            & (len(temp_data['authors']) > 0):
+                        good_paper_dict[1] += 1
+                    else:
+                        good_paper_dict[0] += 1
+
+    print('count:', all_count)
+    print('pdf:', pdf_dict)
+    print('title:', title_dict)
+    print('abstract:', abstract_dict)
+    print('good_paper:', good_paper_dict)
+    print('authors:')
+    get_count_detail(authors_dict, all_count, data_path + 'stats_authors_count_{}_{}.csv'.format(time_range[0], time_range[1]))
+    print('cat:')
+    get_count_detail(cat_dict, all_count, data_path + 'stats_cat_count_{}_{}.csv'.format(time_range[0], time_range[1]), True)
+    print('citation:')
+    get_count_detail(citation_dict, all_count, data_path + 'stats_citation_count_{}_{}.csv'.format(time_range[0], time_range[1]))
+    print('ref:')
+    get_count_detail(ref_dict, all_count, data_path + 'stats_ref_count_{}_{}.csv'.format(time_range[0], time_range[1]))
+    print('journal:')
+    get_count_detail(journal_dict, all_count, data_path + 'stats_journal_count_{}_{}.csv'.format(time_range[0], time_range[1]), True)
+    print('venue:')
+    get_count_detail(venue_dict, all_count, data_path + 'stats_venue_count_{}_{}.csv'.format(time_range[0], time_range[1]), True)
+
 
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
@@ -305,7 +379,8 @@ if __name__ == "__main__":
         # cite_year_count('./data/')
         # get_split_info_dict('./data/')
         # show_data('./data')
-        show_abstract_stats('./data/')
+        # show_abstract_stats('./data/')
+        show_selected_stats('./data/', [1981, 2021])
     elif args.phase == 'reorganize_data':
         reorganize_data(args.data_path)
         print('reorganize data done.')
@@ -326,4 +401,7 @@ if __name__ == "__main__":
         print('show_data done.')
     elif args.phase == 'show_abstract_stats':
         show_abstract_stats(args.data_path)
+        print('show_abstract_stats done.')
+    elif args.phase == 'show_selected_stats':
+        show_selected_stats(args.data_path, [1980, 2021])
         print('show_abstract_stats done.')
