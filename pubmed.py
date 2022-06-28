@@ -288,5 +288,5 @@ if __name__ == "__main__":
         get_ref_data(args.data_path)
         print('ref data done')
     elif args.phase == 'show_data':
-        show_data(args.data_path)
+        show_data(args.data_path, [1980, 2021])
         print('show data done')
