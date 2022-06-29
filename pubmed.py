@@ -5,6 +5,7 @@ import pandas as pd
 from bs4 import BeautifulSoup, Tag
 import json
 
+
 def get_valid_ref_list(soup):
     result_dict = {}
     ref_list = soup.find('ref-list')
@@ -15,8 +16,8 @@ def get_valid_ref_list(soup):
             ref_ids = ref.find_all('pub-id')
             if len(ref_ids) < 1:
                 continue
-    #         print(ref_ids)
-            result_dict[ref_label] = {ref_id.attrs['pub-id-type']: ref_id.text  for ref_id in ref_ids}
+            #         print(ref_ids)
+            result_dict[ref_label] = {ref_id.attrs['pub-id-type']: ref_id.text for ref_id in ref_ids}
     return result_dict
 
 
@@ -241,15 +242,25 @@ def show_data(data_path, time_range=None):
     df = pd.DataFrame(data)
     if time_range:
         print(df.shape)
-        df = df[(df['pub_date'] >= time_range[0])&(df['pub_date'] < time_range[1])]
-        df.groupby('type').count().sort_values(by='pmc', ascending=False)['pmc']\
+        df = df[(df['pub_date'] >= time_range[0]) & (df['pub_date'] < time_range[1])]
+        df.groupby('type').count().sort_values(by='pmc', ascending=False)['pmc'] \
             .to_csv(data_path + 'stats_type_count_{}_{}.csv'.format(time_range[0], time_range[1]))
-        df.groupby('pub_date').count()['pmc']\
+        df.groupby('pub_date').count()['pmc'] \
             .to_csv(data_path + 'stats_year_count_{}_{}.csv'.format(time_range[0], time_range[1]))
         print('good_paper:',
-        df[df.apply(lambda x: (x['ref'] >= 5) & (x['citations'] > 0) & (x['abstract']) & (x['kwds'] > 0), axis=1)].shape[0])
+              df[df.apply(lambda x: (x['ref'] >= 5) & (x['citations'] > 0) & (x['abstract']) & (x['kwds'] > 0),
+                          axis=1)].shape[0])
+        print('connected_paper:',
+              df[df.apply(lambda x: (x['ref'] > 0) & (x['citations'] > 0) & (x['abstract']), axis=1)].shape[0])
+        print('connected_paper with kwds:',
+              df[df.apply(lambda x: (x['ref'] > 0) & (x['citations'] > 0) & (x['abstract']) & (x['kwds'] > 0),
+                          axis=1)].shape[0])
+        print('leaf_paper:',
+              df[df.apply(lambda x: (x['ref'] > 0) & (x['abstract']), axis=1)].shape[0])
+        print('leaf_paper with kwds:',
+              df[df.apply(lambda x: (x['ref'] > 0) & (x['abstract']) & (x['kwds'] > 0), axis=1)].shape[0])
     else:
-        df.groupby('type').count().sort_values(by='pmc', ascending=False)['pmc']\
+        df.groupby('type').count().sort_values(by='pmc', ascending=False)['pmc'] \
             .to_csv(data_path + 'stats_type_count.csv')
         df.groupby('pub_date').count()['pmc'].to_csv(data_path + 'stats_year_count.csv')
     print(df.shape)

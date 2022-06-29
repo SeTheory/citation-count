@@ -304,6 +304,8 @@ def show_selected_stats(data_path, time_range):
     # inbound_dict = defaultdict(int)
     ref_dict = defaultdict(int)
     good_paper_dict = {0: 0, 1: 0}
+    connected_paper_dict = {0: 0, 1: 0}
+    leaf_paper_dict = {0: 0, 1: 0}
 
     for file in files:
         with open(data_path + 'metadata/' + file) as fr:
@@ -338,18 +340,34 @@ def show_selected_stats(data_path, time_range):
                     venue_dict[temp_data['venue']] += 1
 
                     # good_paper
-                    if (len(temp_data['outbound_citations']) >= 5) & (len(temp_data['inbound_citations']) >= 0)\
+                    if (len(temp_data['outbound_citations']) >= 5) & (len(temp_data['inbound_citations']) > 0)\
                             & useful_abstract & useful_title & isinstance(cat_list, list) \
                             & (len(temp_data['authors']) > 0):
                         good_paper_dict[1] += 1
                     else:
                         good_paper_dict[0] += 1
+                    # connected_paper
+                    if (len(temp_data['outbound_citations']) > 0) & (len(temp_data['inbound_citations']) > 0)\
+                            & useful_abstract & useful_title & isinstance(cat_list, list) \
+                            & (len(temp_data['authors']) > 0):
+                        connected_paper_dict[1] += 1
+                    else:
+                        connected_paper_dict[0] += 1
+                    # leaf_paper
+                    if (len(temp_data['outbound_citations']) > 0) & (len(temp_data['inbound_citations']) == 0)\
+                            & useful_abstract & useful_title & isinstance(cat_list, list) \
+                            & (len(temp_data['authors']) > 0):
+                        leaf_paper_dict[1] += 1
+                    else:
+                        leaf_paper_dict[0] += 1
 
     print('count:', all_count)
     print('pdf:', pdf_dict)
     print('title:', title_dict)
     print('abstract:', abstract_dict)
     print('good_paper:', good_paper_dict)
+    print('connected_paper:', connected_paper_dict)
+    print('leaf_paper:', leaf_paper_dict)
     print('authors:')
     get_count_detail(authors_dict, all_count, data_path + 'stats_authors_count_{}_{}.csv'.format(time_range[0], time_range[1]))
     print('cat:')
