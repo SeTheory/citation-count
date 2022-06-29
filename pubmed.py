@@ -256,9 +256,9 @@ def show_data(data_path, time_range=None):
               df[df.apply(lambda x: (x['ref'] > 0) & (x['citations'] > 0) & (x['abstract']) & (x['kwds'] > 0),
                           axis=1)].shape[0])
         print('leaf_paper:',
-              df[df.apply(lambda x: (x['ref'] > 0) & (x['abstract']), axis=1)].shape[0])
+              df[df.apply(lambda x: (x['ref'] > 0) & (x['citations'] == 0) & (x['abstract']), axis=1)].shape[0])
         print('leaf_paper with kwds:',
-              df[df.apply(lambda x: (x['ref'] > 0) & (x['abstract']) & (x['kwds'] > 0), axis=1)].shape[0])
+              df[df.apply(lambda x: (x['ref'] > 0) & (x['citations'] == 0) & (x['abstract']) & (x['kwds'] > 0), axis=1)].shape[0])
     else:
         df.groupby('type').count().sort_values(by='pmc', ascending=False)['pmc'] \
             .to_csv(data_path + 'stats_type_count.csv')
