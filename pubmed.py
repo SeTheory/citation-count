@@ -343,3 +343,7 @@ if __name__ == "__main__":
     elif args.phase == 'show_data':
         show_data(args.data_path, [1980, 2021])
         print('show data done')
+    elif args.phase == 'subset':
+        get_subset(args.data_path, [1980, 2021])
+        print('subset data done')
+
