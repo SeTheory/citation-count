@@ -288,7 +288,7 @@ def get_subset(data_path, time_range=None):
     #                         # & (x[1]['journal']['title'] in selected_journal_list)
     #                    , data.items()))
     data = dict(filter(lambda x: ((int(x[1]['pub_date']['year']) >= time_range[0]) & (int(x[1]['pub_date']['year']) < time_range[1])) |
-                                 ((len(cite[x['pmc']]) > 0) & (int(x[1]['pub_date']['year']) < time_range[1]))
+                                 ((len(cite[x[1]['pmc']]) > 0) & (int(x[1]['pub_date']['year']) < time_range[1]))
                        # & (x[1]['journal']['title'] in selected_journal_list)
                        , data.items()))
     print(len(data))
