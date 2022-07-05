@@ -287,8 +287,8 @@ def get_subset(data_path, time_range=None):
     # data = dict(filter(lambda x: (x[1]['pub_date'] >= time_range[0]) & (x[1]['pub_date'] < time_range[1])
     #                         # & (x[1]['journal']['title'] in selected_journal_list)
     #                    , data.items()))
-    data = dict(filter(lambda x: ((x[1]['pub_date'] >= time_range[0]) & (x[1]['pub_date'] < time_range[1])) |
-                                 ((len(cite[x['pmc']]) > 0) & (x[1]['pub_date'] < time_range[1]))
+    data = dict(filter(lambda x: ((x[1]['pub_date']['year'] >= time_range[0]) & (x[1]['pub_date']['year'] < time_range[1])) |
+                                 ((len(cite[x['pmc']]) > 0) & (x[1]['pub_date']['year'] < time_range[1]))
                        # & (x[1]['journal']['title'] in selected_journal_list)
                        , data.items()))
     print(len(data))
@@ -296,7 +296,7 @@ def get_subset(data_path, time_range=None):
     selected_list = list(map(lambda x: x['pmc'], data.values()))
     print(len(selected_list))
     predicted_list = list(map(lambda x: x['pmc'],
-                              filter(lambda x: (x[1]['pub_date'] >= time_range[0]) & (x[1]['pub_date'] < time_range[1]),
+                              filter(lambda x: (x[1]['pub_date']['year'] >= time_range[0]) & (x[1]['pub_date']['year'] < time_range[1]),
                                      data.values())))
     print(len(predicted_list))
     # ref = dict(filter(lambda x: x[1]['pmc'] in selected_list, ref.items()))
