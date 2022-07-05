@@ -296,7 +296,7 @@ def get_subset(data_path, time_range=None):
     selected_list = list(map(lambda x: x['pmc'], data.values()))
     print(len(selected_list))
     predicted_list = list(map(lambda x: x['pmc'],
-                              filter(lambda x: (int(x[1]['pub_date']['year']) >= time_range[0]) & (int(x[1]['pub_date']['year']) < time_range[1]),
+                              filter(lambda x: (int(x['pub_date']['year']) >= time_range[0]) & (int(x['pub_date']['year']) < time_range[1]),
                                      data.values())))
     print(len(predicted_list))
     # ref = dict(filter(lambda x: x[1]['pmc'] in selected_list, ref.items()))
@@ -344,6 +344,6 @@ if __name__ == "__main__":
         show_data(args.data_path, [1980, 2021])
         print('show data done')
     elif args.phase == 'subset':
-        get_subset(args.data_path, [1980, 2021])
+        get_subset(args.data_path, [2000, 2011])
         print('subset data done')
 
