@@ -46,15 +46,21 @@ def get_all_dict(data_path, part='info'):
     json.dump(result_dict, open(data_path + 'all_{}_dict.json'.format(part), 'w+'))
 
 
-def get_citation_data(data_path):
+def get_cite_data(data_path):
     ref_dict = json.load(open(data_path + 'all_ref_dict.json'))
-    citation_dict = defaultdict(list)
+    cite_dict = defaultdict(list)
     for paper in ref_dict:
         # ref_list = ref_dict[paper]
         for ref in ref_dict[paper]:
-            citation_dict[ref].append(paper)
-    json.dump(citation_dict, open(data_path + 'all_cite_dict.json', 'w+'))
+            cite_dict[ref].append(paper)
+    json.dump(cite_dict, open(data_path + 'all_cite_dict.json', 'w+'))
+    del ref_dict
 
+    year_dict = {}
+    info_dict = json.load(open(data_path + 'all_info_dict.json', 'r'))
+    for paper in cite_dict:
+        year_dict[paper] = list(map(lambda x: int(info_dict[x]['year']), cite_dict[paper]))
+    json.dump(year_dict, open(data_path + 'cite_year_data.json', 'w+'))
 
 
 if __name__ == "__main__":
@@ -68,21 +74,23 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.phase == 'test':
         print('This is a test process.')
-        # get_pub_data('./data/')
         # get_lines_data('./data/')
         # get_all_dict('./data/', 'info')
         # get_all_dict('./data/', 'abstract')
         # get_all_dict('./data/', 'ref')
-        get_citation_data('./data/')
+        get_cite_data('./data/')
     elif args.phase == 'lines_data':
         get_lines_data(args.data_path)
         print('lines data done')
     elif args.phase == 'info_data':
         get_all_dict(args.data_path, 'info')
-        print('lines data done')
+        print('nfo data done')
     elif args.phase == 'abstract_data':
         get_all_dict(args.data_path, 'abstract')
-        print('lines data done')
+        print('abstract data done')
     elif args.phase == 'ref_data':
         get_all_dict(args.data_path, 'ref')
-        print('lines data done')
+        print('ref data done')
+    elif args.phase == 'cite_data':
+        get_cite_data(args.data_path)
+        print('cite data done')
