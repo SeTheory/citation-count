@@ -233,7 +233,7 @@ def show_data(data_path, time_range=None):
         'pub_date': int(x['pub_date']['year']),
         'abstract': len(x['abstract'].split(' ')) >= 20,
         'kwds': len(x['kwds']),
-        'journal': len(x['journal']['ids']) > 0,
+        'journal': x['journal']['title'] if 'title' in x['journal'] else None,
         'full': x['full'],
         'ref': len(ref[x['pmc']]),
         'citations': len(cite[x['pmc']])
@@ -266,11 +266,11 @@ def show_data(data_path, time_range=None):
     print(df.shape)
     print(df.columns)
     print(df.describe(percentiles=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98]))
-    print(df.groupby('type').count().sort_values(by='pmc', ascending=False)['pmc'])
-    print(df.groupby('pub_date').count().sort_values(by='pmc', ascending=False)['pmc'])
-    print(df.groupby('abstract').count().sort_values(by='pmc', ascending=False)['pmc'])
-    print(df.groupby('journal').count().sort_values(by='pmc', ascending=False)['pmc'])
-    print(df.groupby('full').count().sort_values(by='pmc', ascending=False)['pmc'])
+    print(df.groupby('type').count().sort_values(by='pmc', ascending=False)['pmc'].head(20))
+    print(df.groupby('pub_date').count().sort_values(by='pmc', ascending=False)['pmc'].head(20))
+    print(df.groupby('abstract').count().sort_values(by='pmc', ascending=False)['pmc'].head(20))
+    print(df.groupby('journal').count().sort_values(by='pmc', ascending=False)['pmc'].head(20))
+    print(df.groupby('full').count().sort_values(by='pmc', ascending=False)['pmc'].head(20))
 
 
 if __name__ == "__main__":
