@@ -14,6 +14,7 @@ def get_lines_data(data_path):
     with open(data_path + 'dblpv13.json') as fr:
         data = fr.read()
         data = re.sub(r"NumberInt\((\d+)\)", r"\1", data)
+        print('replace successfully!')
         data = json.loads(data)
 
     info_fw = open(data_path + 'temp_info.lines', 'w+')
