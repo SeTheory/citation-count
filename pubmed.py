@@ -4,6 +4,7 @@ import os
 import pandas as pd
 from bs4 import BeautifulSoup, Tag
 import json
+from collections import Counter
 
 
 def get_valid_ref_list(soup):
@@ -258,7 +259,8 @@ def show_data(data_path, time_range=None):
         print('leaf_paper:',
               df[df.apply(lambda x: (x['ref'] > 0) & (x['citations'] == 0) & (x['abstract']), axis=1)].shape[0])
         print('leaf_paper with kwds:',
-              df[df.apply(lambda x: (x['ref'] > 0) & (x['citations'] == 0) & (x['abstract']) & (x['kwds'] > 0), axis=1)].shape[0])
+              df[df.apply(lambda x: (x['ref'] > 0) & (x['citations'] == 0) & (x['abstract']) & (x['kwds'] > 0),
+                          axis=1)].shape[0])
     else:
         df.groupby('type').count().sort_values(by='pmc', ascending=False)['pmc'] \
             .to_csv(data_path + 'stats_type_count.csv')
@@ -273,6 +275,45 @@ def show_data(data_path, time_range=None):
     print(df.groupby('full').count().sort_values(by='pmc', ascending=False)['pmc'].head(20))
 
 
+def get_subset(data_path, time_range=None):
+    # 这里先简单的对于范围内考虑全部信息，同时只考虑前向节点，后向文献只作为引用数而不作为节点，构建一个比较小的图
+    data = json.load(open(data_path + 'all_pub_data.json', 'r'))
+    ref = json.load(open(data_path + 'all_ref_data.json', 'r'))
+    cite = json.load(open(data_path + 'all_cite_data.json', 'r'))
+    cite_year = json.load(open(data_path + 'cite_year_data.json', 'r'))
+
+    # selected_journal_list = []
+
+    # data = dict(filter(lambda x: (x[1]['pub_date'] >= time_range[0]) & (x[1]['pub_date'] < time_range[1])
+    #                         # & (x[1]['journal']['title'] in selected_journal_list)
+    #                    , data.items()))
+    data = dict(filter(lambda x: ((x[1]['pub_date'] >= time_range[0]) & (x[1]['pub_date'] < time_range[1])) |
+                                 ((len(cite[x['pmc']]) > 0) & (x[1]['pub_date'] < time_range[1]))
+                       # & (x[1]['journal']['title'] in selected_journal_list)
+                       , data.items()))
+    print(len(data))
+    json.dump(data, open(data_path + 'sample_info_dict.json', 'w+'))
+    selected_list = list(map(lambda x: x['pmc'], data.values()))
+    print(len(selected_list))
+    predicted_list = list(map(lambda x: x['pmc'],
+                              filter(lambda x: (x[1]['pub_date'] >= time_range[0]) & (x[1]['pub_date'] < time_range[1]),
+                                     data.values())))
+    print(len(predicted_list))
+    # ref = dict(filter(lambda x: x[1]['pmc'] in selected_list, ref.items()))
+    # ref = dict(map(lambda x: (x[0], [paper for paper in x[1] if paper in selected_list]), ref.items()))
+    # json.dump(ref, open(data_path + 'sample_ref_dict.json', 'w+'))
+    # cite = dict(filter(lambda x: x[1]['pmc'] in selected_list, cite.items()))
+    # cite = dict(map(lambda x: (x[0], [paper for paper in x[1] if paper in selected_list]), cite.items()))
+    # json.dump(cite, open(data_path + 'sample_cite_dict.json', 'w+'))
+    ref = dict(filter(lambda x: x[1]['pmc'] in selected_list, ref.items()))
+    ref = dict(map(lambda x: (x[0], [paper for paper in x[1] if paper in selected_list]), ref.items()))
+    json.dump(ref, open(data_path + 'sample_ref_dict.json', 'w+'))
+
+    cite_year = dict(
+        map(lambda x: (x[0], Counter(x[1])), filter(lambda x: x[1]['pmc'] in predicted_list, cite_year.items())))
+    json.dump(cite_year, open(data_path + 'sample_cite_year_dict.json', 'w+'))
+
+
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
     parser = argparse.ArgumentParser(description='Process some description.')
@@ -285,7 +326,8 @@ if __name__ == "__main__":
     if args.phase == 'test':
         print('This is a test process.')
         # get_pub_data('./data/')
-        show_data('./data/', [1980, 2021])
+        # show_data('./data/', [1980, 2021])
+        print(Counter([2011, 2011, 2020, 2005, 2018]))
     elif args.phase == 'simple_data':
         get_simple_data(args.data_path, args.name)
         print('simple data done')
