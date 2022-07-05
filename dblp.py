@@ -59,7 +59,7 @@ def get_cite_data(data_path):
     year_dict = {}
     info_dict = json.load(open(data_path + 'all_info_dict.json', 'r'))
     for paper in cite_dict:
-        year_dict[paper] = list(map(lambda x: int(info_dict[x]['year']), cite_dict[paper]))
+        year_dict[paper] = list(filter(lambda x: x, map(lambda x: info_dict[x]['year'], cite_dict[paper])))
     json.dump(year_dict, open(data_path + 'cite_year_data.json', 'w+'))
 
 
