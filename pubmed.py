@@ -424,4 +424,7 @@ if __name__ == "__main__":
     elif args.phase == 'subset_input_data':
         get_input_data(args.data_path, subset=True)
         print('subset input data done')
+    elif args.phase == 'subset_input_data':
+        get_input_data(args.data_path)
+        print('input data done')
 
