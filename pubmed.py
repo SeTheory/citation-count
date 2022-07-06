@@ -5,6 +5,8 @@ import pandas as pd
 from bs4 import BeautifulSoup, Tag
 import json
 from collections import Counter
+import dgl
+import torch
 
 
 def get_valid_ref_list(soup):
@@ -315,6 +317,75 @@ def get_subset(data_path, time_range=None):
     json.dump(cite_year, open(data_path + 'sample_cite_year_dict.json', 'w+'))
 
 
+def get_input_data(data_path, time_window=10, subset=False):
+    info_path = data_path + 'all_info_dict.json'
+    ref_path = data_path + 'all_ref_dict.json'
+    cite_year_path = data_path + 'all_cite_year_dict.json'
+    if subset:
+        info_path = data_path + 'sample_info_dict.json'
+        ref_path = data_path + 'sample_ref_dict.json'
+        cite_year_path = data_path + 'sample_cite_year_dict.json'
+
+    info_dict = json.load(open(info_path, 'r'))
+    ref_dict = json.load(open(ref_path, 'r'))
+    cite_year_dict = json.load(open(cite_year_path, 'r'))
+
+    node_trans = {}
+    # graph created
+    src_list = []
+    dst_list = []
+    index = 0
+    for dst in ref_dict:
+        if dst in node_trans:
+            dst_idx = node_trans[dst]
+        else:
+            dst_idx = index
+            node_trans[dst] = dst_idx
+            index += 1
+        for src in ref_dict[dst]:
+            if src in node_trans:
+                src_idx = node_trans[src]
+            else:
+                src_idx = index
+                node_trans[src] = src_idx
+                index += 1
+            src_list.append(src_idx)
+            dst_list.append(dst_idx)
+    if subset:
+        json.dump(node_trans, open(data_path + 'sample_node_trans.json', 'w+'))
+    else:
+        json.dump(node_trans, open(data_path + 'all_node_trans.json', 'w+'))
+
+    graph = dgl.graph((src_list, dst_list))
+    # graph.ndata['paper_id'] = torch.tensor(list(node_trans.keys())).unsqueeze(dim=0)
+    print(graph)
+    if subset:
+        torch.save(graph, data_path + 'graph_sample')
+    else:
+        torch.save(graph, data_path + 'graph')
+
+    del graph, src_list, dst_list
+
+    predicted_list = list(cite_year_dict.keys())
+    accum_num_dict = {}
+
+    for paper in predicted_list:
+        temp_cum_num = []
+        pub_year = int(info_dict[paper]['pub_date']['year'])
+        count_dict = cite_year_dict[paper]
+        count = 0
+        for year in range(pub_year, pub_year+time_window):
+            if str(year) in count_dict:
+                count += int(count_dict[str(year)])
+            temp_cum_num.append(count)
+        accum_num_dict[paper] = temp_cum_num
+    if subset:
+        json.dump(accum_num_dict, open(data_path + 'sample_citation_accum.json', 'w+'))
+    else:
+        json.dump(accum_num_dict, open(data_path + 'all_citation_accum.json', 'w+'))
+
+
+
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
     parser = argparse.ArgumentParser(description='Process some description.')
@@ -330,7 +401,8 @@ if __name__ == "__main__":
         # get_ref_data('./data/')
         # show_data('./data/', [1980, 2021])
         # print(Counter([2011, 2011, 2020, 2005, 2018]))
-        get_subset('./data/', [2000, 2011])
+        # get_subset('./data/', [2000, 2011])
+        get_input_data('./data/', subset=True)
     elif args.phase == 'simple_data':
         get_simple_data(args.data_path, args.name)
         print('simple data done')
