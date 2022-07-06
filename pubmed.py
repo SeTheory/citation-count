@@ -384,6 +384,11 @@ def get_input_data(data_path, time_window=10, subset=False):
     else:
         json.dump(accum_num_dict, open(data_path + 'all_citation_accum.json', 'w+'))
 
+    print(len(accum_num_dict))
+    print(len(list(filter(lambda x: x[-1] > 0, accum_num_dict.values()))))
+    print(len(list(filter(lambda x: x[-1] >= 10, accum_num_dict.values()))))
+    print(len(list(filter(lambda x: x[-1] >= 100, accum_num_dict.values()))))
+
 
 
 if __name__ == "__main__":
