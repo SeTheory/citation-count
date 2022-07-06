@@ -294,9 +294,9 @@ def get_subset(data_path, time_range=None):
                        , data.items()))
     print(len(data))
     json.dump(data, open(data_path + 'sample_info_dict.json', 'w+'))
-    selected_list = list(map(lambda x: x['pmc'], data.values()))
+    selected_list = set(map(lambda x: x['pmc'], data.values()))
     print(len(selected_list))
-    predicted_list = list(map(lambda x: x['pmc'],
+    predicted_list = set(map(lambda x: x['pmc'],
                               filter(lambda x: (int(x['pub_date']['year']) >= time_range[0]) & (int(x['pub_date']['year']) < time_range[1]),
                                      data.values())))
     print(len(predicted_list))
@@ -327,8 +327,10 @@ if __name__ == "__main__":
     if args.phase == 'test':
         print('This is a test process.')
         # get_pub_data('./data/')
+        # get_ref_data('./data/')
         # show_data('./data/', [1980, 2021])
-        print(Counter([2011, 2011, 2020, 2005, 2018]))
+        # print(Counter([2011, 2011, 2020, 2005, 2018]))
+        get_subset('./data/', [2000, 2011])
     elif args.phase == 'simple_data':
         get_simple_data(args.data_path, args.name)
         print('simple data done')
