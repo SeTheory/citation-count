@@ -421,4 +421,7 @@ if __name__ == "__main__":
     elif args.phase == 'subset':
         get_subset(args.data_path, [2000, 2011])
         print('subset data done')
+    elif args.phase == 'subset_input_data':
+        get_input_data(args.data_path, subset=True)
+        print('subset input data done')
 
