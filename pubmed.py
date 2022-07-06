@@ -290,6 +290,9 @@ def get_subset(data_path, time_range=None):
     # data = dict(filter(lambda x: (x[1]['pub_date'] >= time_range[0]) & (x[1]['pub_date'] < time_range[1])
     #                         # & (x[1]['journal']['title'] in selected_journal_list)
     #                    , data.items()))
+    print(len(data))
+    data = dict(filter(lambda x: len(x[1]['abstract'].split(' ')) >= 20, data.items()))
+    print(len(data))
     data = dict(filter(lambda x: ((int(x[1]['pub_date']['year']) >= time_range[0]) & (int(x[1]['pub_date']['year']) < time_range[1])) |
                                  ((len(cite[x[1]['pmc']]) > 0) & (int(x[1]['pub_date']['year']) < time_range[1]))
                        # & (x[1]['journal']['title'] in selected_journal_list)
@@ -297,7 +300,6 @@ def get_subset(data_path, time_range=None):
     print(len(data))
     json.dump(data, open(data_path + 'sample_info_dict.json', 'w+'))
     selected_list = set(map(lambda x: x['pmc'], data.values()))
-    print(len(selected_list))
     predicted_list = set(map(lambda x: x['pmc'],
                               filter(lambda x: (int(x['pub_date']['year']) >= time_range[0]) & (int(x['pub_date']['year']) < time_range[1]),
                                      data.values())))
@@ -407,7 +409,7 @@ if __name__ == "__main__":
         # get_ref_data('./data/')
         # show_data('./data/', [1980, 2021])
         # print(Counter([2011, 2011, 2020, 2005, 2018]))
-        # get_subset('./data/', [2000, 2011])
+        get_subset('./data/', [2000, 2011])
         get_input_data('./data/', subset=True)
     elif args.phase == 'simple_data':
         get_simple_data(args.data_path, args.name)
