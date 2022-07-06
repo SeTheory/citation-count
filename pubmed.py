@@ -305,12 +305,12 @@ def get_subset(data_path, time_range=None):
     # cite = dict(filter(lambda x: x[1]['pmc'] in selected_list, cite.items()))
     # cite = dict(map(lambda x: (x[0], [paper for paper in x[1] if paper in selected_list]), cite.items()))
     # json.dump(cite, open(data_path + 'sample_cite_dict.json', 'w+'))
-    ref = dict(filter(lambda x: x[1]['pmc'] in selected_list, ref.items()))
+    ref = dict(filter(lambda x: x[0] in selected_list, ref.items()))
     ref = dict(map(lambda x: (x[0], [paper for paper in x[1] if paper in selected_list]), ref.items()))
     json.dump(ref, open(data_path + 'sample_ref_dict.json', 'w+'))
 
     cite_year = dict(
-        map(lambda x: (x[0], Counter(x[1])), filter(lambda x: x[1]['pmc'] in predicted_list, cite_year.items())))
+        map(lambda x: (x[0], Counter(x[1])), filter(lambda x: x[0] in predicted_list, cite_year.items())))
     json.dump(cite_year, open(data_path + 'sample_cite_year_dict.json', 'w+'))
 
 
