@@ -277,6 +277,7 @@ def show_data(data_path, time_range=None):
 
 def get_subset(data_path, time_range=None):
     # 这里先简单的对于范围内考虑全部信息，同时只考虑前向节点，后向文献只作为引用数而不作为节点，构建一个比较小的图
+    print(time_range)
     data = json.load(open(data_path + 'all_pub_data.json', 'r'))
     ref = json.load(open(data_path + 'all_ref_data.json', 'r'))
     cite = json.load(open(data_path + 'all_cite_data.json', 'r'))
