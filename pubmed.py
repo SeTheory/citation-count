@@ -379,16 +379,17 @@ def get_input_data(data_path, time_window=10, subset=False):
                 count += int(count_dict[str(year)])
             temp_cum_num.append(count)
         accum_num_dict[paper] = temp_cum_num
-    if subset:
-        json.dump(accum_num_dict, open(data_path + 'sample_citation_accum.json', 'w+'))
-    else:
-        json.dump(accum_num_dict, open(data_path + 'all_citation_accum.json', 'w+'))
 
     print(len(accum_num_dict))
     print(len(list(filter(lambda x: x[-1] > 0, accum_num_dict.values()))))
     print(len(list(filter(lambda x: x[-1] >= 10, accum_num_dict.values()))))
     print(len(list(filter(lambda x: x[-1] >= 100, accum_num_dict.values()))))
 
+    if subset:
+        accum_num_dict = dict(filter(lambda x: x[1][-1] >= 10, accum_num_dict.items()))
+        json.dump(accum_num_dict, open(data_path + 'sample_citation_accum.json', 'w+'))
+    else:
+        json.dump(accum_num_dict, open(data_path + 'all_citation_accum.json', 'w+'))
 
 
 if __name__ == "__main__":
