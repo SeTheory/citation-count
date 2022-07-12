@@ -466,10 +466,10 @@ if __name__ == "__main__":
         show_data(args.data_path, [1980, 2021])
         print('show data done')
     elif args.phase == 'subset':
-        get_subset(args.data_path, [2000, 2011])
+        get_subset(args.data_path, time_point=2005)
         print('subset data done')
     elif args.phase == 'subset_input_data':
-        get_input_data(args.data_path, subset=True)
+        get_input_data(args.data_path, subset=True, time_point=2005)
         print('subset input data done')
     elif args.phase == 'subset_input_data':
         get_input_data(args.data_path)
