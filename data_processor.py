@@ -125,9 +125,10 @@ class DataProcessor:
 
             graph.ndata['h'] = torch.cat(feature_list, dim=0)
             print(graph.ndata['h'].shape)
-
         torch.save(graph, self.data_cat_path + 'graph_sample_feature')
 
+    def load_graph(self, graph_name='graph_sample_feature'):
+        self.graph = torch.load(self.data_cat_path + graph_name)
 
     @staticmethod
     def values_pipeline(values):
