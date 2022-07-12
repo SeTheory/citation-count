@@ -398,7 +398,7 @@ if __name__ == "__main__":
         # get_split_info_dict('./data/')
         # show_data('./data')
         # show_abstract_stats('./data/')
-        show_selected_stats('./data/', [1981, 2021])
+        show_selected_stats('../data/', [1981, 2021])
     elif args.phase == 'reorganize_data':
         reorganize_data(args.data_path)
         print('reorganize data done.')

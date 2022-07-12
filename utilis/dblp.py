@@ -78,7 +78,7 @@ if __name__ == "__main__":
         # get_all_dict('./data/', 'info')
         # get_all_dict('./data/', 'abstract')
         # get_all_dict('./data/', 'ref')
-        get_cite_data('./data/')
+        get_cite_data('../data/')
     elif args.phase == 'lines_data':
         get_lines_data(args.data_path)
         print('lines data done')
