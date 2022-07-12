@@ -90,14 +90,17 @@ class BaseModel(nn.Module):
             target_length = target_tensor.shape[1]
             use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
 
+            predicted_values = []
+            true_values = []
+
             if use_teacher_forcing:
                 # Teacher forcing: Feed the target as the next input
                 for di in range(target_length):
                     decoder_output, decoder_hidden = self.decoder(
                         decoder_input, decoder_hidden)
                     loss += criterion(decoder_output, target_tensor[:, di].unsqueeze(dim=1))
-                    all_predicted_values.append(decoder_output.squeeze().detach().cpu())
-                    all_true_values.append(target_tensor[:, di].squeeze().detach().cpu())
+                    predicted_values.append(decoder_output.squeeze().detach().cpu())
+                    true_values.append(target_tensor[:, di].squeeze().detach().cpu())
                     decoder_input = target_tensor[:, di].unsqueeze(dim=1)  # Teacher forcing
 
             else:
@@ -110,8 +113,11 @@ class BaseModel(nn.Module):
                     decoder_input = decoder_output
 
                     loss += criterion(decoder_output, target_tensor[:, di].unsqueeze(dim=1))
-                    all_predicted_values.append(decoder_output.squeeze().detach().cpu())
-                    all_true_values.append(target_tensor[:, di].squeeze().detach().cpu())
+                    predicted_values.append(decoder_output.squeeze().detach().cpu())
+                    true_values.append(target_tensor[:, di].squeeze().detach().cpu())
+
+            all_predicted_values.append(torch.stack(predicted_values))
+            all_true_values.append(torch.stack(true_values))
 
             loss.backward()  # 反向传播
             torch.nn.utils.clip_grad_norm_(self.parameters(), 5)  # 梯度裁剪，防止梯度消失或爆炸
@@ -139,8 +145,8 @@ class BaseModel(nn.Module):
         print('| end of epoch {:3d} | time: {:5.2f}s |'.format(epoch, elapsed))
         logging.info('-' * 59)
         logging.info('| end of epoch {:3d} | time: {:5.2f}s |'.format(epoch, elapsed))
-        all_predicted_values = torch.stack(all_predicted_values).numpy().T
-        all_true_values = torch.stack(all_true_values).numpy().T
+        all_predicted_values = torch.cat(all_predicted_values, dim=1).numpy()
+        all_true_values = torch.cat(all_true_values, dim=1).numpy()
         avg_loss = all_loss / len(dataloader)
         results = [avg_loss] + eval_result(all_true_values, all_predicted_values)
         format_str = result_format(results)
@@ -263,6 +269,9 @@ class BaseModel(nn.Module):
                 target_tensor = values[:, 1, :].unsqueeze(dim=-1).float()
                 target_length = target_tensor.shape[1]
 
+                predicted_values = []
+                true_values = []
+
                 for di in range(target_length):
                     decoder_output, decoder_hidden = self.decoder(
                         decoder_input, decoder_hidden)
@@ -272,16 +281,19 @@ class BaseModel(nn.Module):
 
                     loss += self.criterion(decoder_output, target_tensor[:, di].unsqueeze(dim=1)).item() / target_length
                     all_loss += loss
-                    all_predicted_values.append(decoder_output.squeeze().detach().cpu())
-                    all_true_values.append(target_tensor[:, di].squeeze().detach().cpu())
+                    predicted_values.append(decoder_output.squeeze().detach().cpu())
+                    true_values.append(target_tensor[:, di].squeeze().detach().cpu())
+
+                all_predicted_values.append(torch.stack(predicted_values))
+                all_true_values.append(torch.stack(true_values))
 
             elapsed = time.time() - start_time
             print('-' * 59)
             print('| end of {} | time: {:5.2f}s |'.format(phase, elapsed))
             logging.info('-' * 59)
             logging.info('| end of {} | time: {:5.2f}s |'.format(phase, elapsed))
-            all_predicted_values = torch.stack(all_predicted_values).numpy().T
-            all_true_values = torch.stack(all_true_values).numpy().T
+            all_predicted_values = torch.cat(all_predicted_values, dim=1).numpy()
+            all_true_values = torch.cat(all_true_values, dim=1).numpy()
             avg_loss = all_loss / len(dataloader)
             results = [avg_loss] + eval_result(all_true_values, all_predicted_values)
             format_str = result_format(results)

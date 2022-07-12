@@ -35,7 +35,7 @@ class RNN(BaseModel):
             self.fc = nn.Linear(hidden_size * 2, self.num_class)
         else:
             self.fc = nn.Linear(hidden_size, self.num_class)
-        self.to(self.device)
+        # self.to(self.device)
 
     def forward(self, x, lengths, masks, **kwargs):
         # print(content.shape)
@@ -45,8 +45,8 @@ class RNN(BaseModel):
         # 压缩向量
         packed_input = pack_padded_sequence(inputs.unsqueeze(dim=-1).float(), valid_len.cpu().numpy(), batch_first=True, enforce_sorted=False)
         # 这里是输入的隐藏层也就是文本内容，这里直接依据序列长度做avgpool，然后和LSTM层数对齐
-        h_0 = x_embed.mean(dim=1).unsqueeze(dim=0).repeat(self.num_layers * (int(self.bidirectional) + 1), 1, 1)
-        c_0 = x_embed.mean(dim=1).unsqueeze(dim=0).repeat(self.num_layers * (int(self.bidirectional) + 1), 1, 1)
+        h_0 = (x_embed.sum(dim=1)/lengths.unsqueeze(dim=-1)).unsqueeze(dim=0).repeat(self.num_layers * (int(self.bidirectional) + 1), 1, 1)
+        c_0 = (x_embed.sum(dim=1)/lengths.unsqueeze(dim=-1)).unsqueeze(dim=0).repeat(self.num_layers * (int(self.bidirectional) + 1), 1, 1)
 
         return packed_input, (h_0, c_0)
 
@@ -107,7 +107,7 @@ if __name__ == '__main__':
         valid_len = torch.tensor([3, 5])
         output_seq = torch.tensor([[4, 6, 8, 8, 8], [8, 12, 20, 32, 40]])
         masks = []
-        lens = []
+        lens = torch.tensor([5, 8])
         x = [content, input_seq, valid_len]
         pack, (h_0, c_0) = model(x, lens, masks)
         print(h_0.shape)
@@ -117,7 +117,7 @@ if __name__ == '__main__':
         print(encoder_hidden[0].shape)
         print(encoder_hidden[1].shape)
 
-        decoder_input = torch.tensor([3, 4])
+        decoder_input = torch.tensor([3, 4]).unsqueeze(dim=-1).unsqueeze(dim=-1).float()
         decoder_hidden = encoder_hidden
         decoder_output, (ht, ct) = model.decoder(decoder_input, decoder_hidden)
         print(decoder_output)

@@ -4,6 +4,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 
 def eval_result(all_true_values, all_predicted_values):
+    # print(mean_absolute_error(all_true_values, all_predicted_values, multioutput='raw_values'))
     mae = mean_absolute_error(all_true_values, all_predicted_values)
     mse = mean_squared_error(all_true_values, all_predicted_values)
     rmse = math.sqrt(mse)
