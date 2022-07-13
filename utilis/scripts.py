@@ -1,3 +1,4 @@
+import json
 import math
 
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
@@ -22,3 +23,15 @@ def result_format(results):
                  '-' * 59
     print(format_str)
     return format_str
+
+
+def get_configs(data_source, model_list):
+    fr = open('./configs/{}.json'.format(data_source))
+    configs = json.load(fr)
+    full_configs = {'default': configs['default']}
+    for model in model_list:
+        full_configs[model] = configs['default'].copy()
+        if model in configs.keys():
+            for key in configs[model].keys():
+                full_configs[model][key] = configs[model][key]
+    return full_configs

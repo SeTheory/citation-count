@@ -9,6 +9,8 @@ from data_processor import *
 from models.RNN import RNN
 from models.RNNG import RNNG
 
+from utilis.scripts import get_configs
+
 
 def get_model(model_name, config, vectors=None):
     model = None
@@ -52,26 +54,6 @@ def train_single(data_source, model_name, config, seed=123):
                       record_path=record_path, save_path=save_path, graph=graph_dict)
 
 
-def make_data(data_source, config, seed=True, use_graph=False):
-    dataProcessor = DataProcessor(data_source, seed=int(seed))
-    dataProcessor.split_data(config['rate'], config['fixed_num'])
-    dataProcessor.get_tokenizer(config['tokenizer_type'], config['tokenizer_path'])
-    if use_graph:
-        dataProcessor.get_feature_graph(config['tokenizer_path'], config['mode'])
-
-
-def get_configs(data_source, model_list):
-    fr = open('./configs/{}.json'.format(data_source))
-    configs = json.load(fr)
-    full_configs = {'default': configs['default']}
-    for model in model_list:
-        full_configs[model] = configs['default'].copy()
-        if model in configs.keys():
-            for key in configs[model].keys():
-                full_configs[model][key] = configs[model][key]
-    return full_configs
-
-
 def setup_seed(seed):
     # 设定随机种子
     torch.manual_seed(seed)
@@ -113,12 +95,4 @@ if __name__ == '__main__':
     if args.phase in model_list:
         train_single(args.data_source, args.phase, configs[args.phase], args.seed)
         print('{} done'.format(args.phase))
-    elif args.phase == 'make_data':
-        temp_config = configs['default']
-        make_data(args.data_source, temp_config, seed=args.seed)
-    elif args.phase == 'make_data_graph':
-        temp_config = configs['default']
-        temp_config['tokenizer_type'] = 'glove'
-        temp_config['tokenizer_path'] = './data/glove'
-        temp_config['mode'] = 'vector'
-        make_data(args.data_source, temp_config, seed=args.seed, use_graph=True)
+

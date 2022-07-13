@@ -1,3 +1,5 @@
+import argparse
+import datetime
 import json
 import random
 import re
@@ -7,6 +9,7 @@ from torch.utils.data import DataLoader
 from torchtext.data.utils import get_tokenizer
 from transformers import BertTokenizer
 from torchtext.vocab import build_vocab_from_iterator, Vectors, vocab
+from utilis.scripts import get_configs
 
 """
 因为数据集比较大，这里一次处理完数据保存好直接读取
@@ -291,22 +294,50 @@ class VectorTokenizer(BasicTokenizer):
             self.build_vocab()
 
 
+def make_data(data_source, config, seed=True, use_graph=False):
+    dataProcessor = DataProcessor(data_source, seed=int(seed))
+    dataProcessor.split_data(config['rate'], config['fixed_num'])
+    dataProcessor.get_tokenizer(config['tokenizer_type'], config['tokenizer_path'])
+    if use_graph:
+        dataProcessor.get_feature_graph(config['tokenizer_path'], config['mode'])
+
+
 if __name__ == "__main__":
-    dataProcessor = DataProcessor('pubmed')
-    # dataProcessor.split_data()
-    # tokenizer = VectorTokenizer(vector_path='./data/glove', data_path='pubmed')
-    # tokenizer.load_vocab()
-    # print(tokenizer.vocab.get_stoi())
-    dataProcessor.get_tokenizer('glove', './data/glove')
-    # dataProcessor.get_tokenizer()
-    # dataloader = dataProcessor.get_dataloader()[2]
-    # for idx, (content, value, lens, mask, id) in enumerate(dataloader):
-    #     # if idx == 0:
-    #     print(content)
-    #     print(content[0].shape)
-    #     print(value)
-    #     print(id)
-    #
-    #     print(lens)
-    # dataProcessor.get_feature_graph('./data/glove')
-    # print(dataProcessor.load_graph())
+    start_time = datetime.datetime.now()
+    parser = argparse.ArgumentParser(description='Process some description.')
+
+    parser.add_argument('--phase', default='make_data_graph', help='the function name.')
+    parser.add_argument('--data_source', default='pubmed', help='the data source.')
+    parser.add_argument('--seed', default=123, help='the data seed.')
+
+    args = parser.parse_args()
+    configs = get_configs(args.data_source, [])
+
+    if args.phase == 'test':
+        dataProcessor = DataProcessor('pubmed')
+        # dataProcessor.split_data()
+        # tokenizer = VectorTokenizer(vector_path='./data/glove', data_path='pubmed')
+        # tokenizer.load_vocab()
+        # print(tokenizer.vocab.get_stoi())
+        dataProcessor.get_tokenizer('glove', './data/glove')
+        # dataProcessor.get_tokenizer()
+        # dataloader = dataProcessor.get_dataloader()[2]
+        # for idx, (content, value, lens, mask, id) in enumerate(dataloader):
+        #     # if idx == 0:
+        #     print(content)
+        #     print(content[0].shape)
+        #     print(value)
+        #     print(id)
+        #
+        #     print(lens)
+        # dataProcessor.get_feature_graph('./data/glove')
+        # print(dataProcessor.load_graph())
+    elif args.phase == 'make_data':
+        temp_config = configs['default']
+        make_data(args.data_source, temp_config, seed=args.seed)
+    elif args.phase == 'make_data_graph':
+        temp_config = configs['default']
+        temp_config['tokenizer_type'] = 'glove'
+        temp_config['tokenizer_path'] = './data/glove'
+        temp_config['mode'] = 'vector'
+        make_data(args.data_source, temp_config, seed=args.seed, use_graph=True)
