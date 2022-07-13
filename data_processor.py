@@ -19,7 +19,7 @@ UNK, PAD, SEP = '[UNK]', '[PAD]', '[SEP]'
 
 
 class DataProcessor:
-    def __init__(self, data_source, max_len=256, use_graph=False, seed=123):
+    def __init__(self, data_source, max_len=256, seed=123):
         print('Init...')
         self.data_root = './data/'
         self.data_source = data_source
@@ -75,18 +75,18 @@ class DataProcessor:
 
         torch.save(cut_data, self.data_cat_path + 'split_data')
 
-    def get_tokenizer(self, type='basic', tokenizer_path=None):
-        if type == 'bert':
+    def get_tokenizer(self, tokenizer_type='basic', tokenizer_path=None):
+        if tokenizer_type == 'bert':
             self.tokenizer = CustomBertTokenizer(max_len=self.max_len, bert_path=tokenizer_path,
                                                  data_path=self.data_cat_path)
-        elif type == 'glove':
+        elif tokenizer_type == 'glove':
             self.tokenizer = VectorTokenizer(max_len=self.max_len, vector_path=tokenizer_path,
                                              data_path=self.data_cat_path, name='glove')
         else:
             self.tokenizer = BasicTokenizer(max_len=self.max_len, data_path=self.data_cat_path)
 
         data = torch.load(self.data_cat_path + 'split_data')
-        self.tokenizer.build_vocab(data['train'][2], seed=self.seed)
+        self.tokenizer.load_vocab(data['train'][2], seed=self.seed)
 
     def get_dataloader(self, batch_size=32, num_workers=0):
         data = torch.load(self.data_cat_path + 'split_data')
@@ -128,7 +128,11 @@ class DataProcessor:
         torch.save(graph, self.data_cat_path + 'graph_sample_feature')
 
     def load_graph(self, graph_name='graph_sample_feature'):
-        self.graph = torch.load(self.data_cat_path + graph_name)
+        self.graph = {
+            'data': torch.load(self.data_cat_path + graph_name),
+            'node_trans': json.load(open(self.data_cat_path + 'sample_node_trans.json', 'r'))
+        }
+        return self.graph
 
     @staticmethod
     def values_pipeline(values):
@@ -182,19 +186,25 @@ class BasicTokenizer:
         self.max_len = max_len
         self.vocab = None
         self.data_path = data_path
+        self.vectors = None
 
     def yield_tokens(self, data_iter):
         # 转换成生成器形式，以便后续进行处理
         for content in data_iter:
             yield self.tokenizer(content)
 
-    def build_vocab(self, text_list, seed=None):
+    def build_vocab(self, text_list, seed):
         self.vocab = build_vocab_from_iterator(self.yield_tokens(text_list), specials=[UNK, PAD])
         self.vocab.set_default_index(self.vocab[UNK])
         torch.save(self.vocab, self.data_path + 'vocab_{}'.format(seed))
 
-    def load_vocab(self, seed):
-        self.vocab = torch.load(self.data_path + 'vocab_{}'.format(seed))
+    def load_vocab(self, text_list, seed):
+        try:
+            self.vocab = torch.load(self.data_path + 'vocab_{}'.format(seed))
+        except Exception as e:
+            print(e)
+            self.build_vocab(text_list, seed)
+
 
     def encode(self, text):
         tokens = self.tokenizer(text)
@@ -214,7 +224,7 @@ class CustomBertTokenizer(BasicTokenizer):
         super(CustomBertTokenizer, self).__init__(max_len)
         self.tokenizer = BertTokenizer.from_pretrained(bert_path)
 
-    def build_vocab(self, text_list, seed=None):
+    def build_vocab(self, text_list=None, seed=None):
         self.vocab = {
             PAD: self.tokenizer.convert_tokens_to_ids([PAD])[0],
             UNK: self.tokenizer.convert_tokens_to_ids([UNK])[0],
@@ -222,7 +232,12 @@ class CustomBertTokenizer(BasicTokenizer):
         }
         print('bert already have vocab')
 
-    def load_vocab(self, seed=None):
+    def load_vocab(self, text_list=None, seed=None):
+        self.vocab = {
+            PAD: self.tokenizer.convert_tokens_to_ids([PAD])[0],
+            UNK: self.tokenizer.convert_tokens_to_ids([UNK])[0],
+            SEP: self.tokenizer.convert_tokens_to_ids([SEP])[0]
+        }
         print('bert already have vocab')
 
     def encode(self, text):
@@ -263,22 +278,26 @@ class VectorTokenizer(BasicTokenizer):
             torch.save(self.vocab, self.data_path + 'vector_vocab')
             torch.save(self.vectors, self.data_path + 'vectors')
 
-    def load_vocab(self, seed=None):
-        if self.name:
-            self.vocab = torch.load(self.data_path + '{}_vocab'.format(self.name))
-            self.vectors = torch.load(self.data_path + self.name)
-        else:
-            self.vocab = torch.load(self.data_path + 'vector_vocab')
-            self.vectors = torch.load(self.data_path + 'vectors')
+    def load_vocab(self, text_list=None, seed=None):
+        try:
+            if self.name:
+                self.vocab = torch.load(self.data_path + '{}_vocab'.format(self.name))
+                self.vectors = torch.load(self.data_path + self.name)
+            else:
+                self.vocab = torch.load(self.data_path + 'vector_vocab')
+                self.vectors = torch.load(self.data_path + 'vectors')
+        except Exception as e:
+            print(e)
+            self.build_vocab()
 
 
 if __name__ == "__main__":
     dataProcessor = DataProcessor('pubmed')
-    dataProcessor.split_data()
+    # dataProcessor.split_data()
     # tokenizer = VectorTokenizer(vector_path='./data/glove', data_path='pubmed')
-    # tokenizer.build_vocab()
+    # tokenizer.load_vocab()
     # print(tokenizer.vocab.get_stoi())
-    # dataProcessor.get_tokenizer('glove', './data/glove')
+    dataProcessor.get_tokenizer('glove', './data/glove')
     # dataProcessor.get_tokenizer()
     # dataloader = dataProcessor.get_dataloader()[2]
     # for idx, (content, value, lens, mask, id) in enumerate(dataloader):
@@ -286,6 +305,8 @@ if __name__ == "__main__":
     #     print(content)
     #     print(content[0].shape)
     #     print(value)
+    #     print(id)
     #
     #     print(lens)
-    dataProcessor.get_feature_graph('./data/glove')
+    # dataProcessor.get_feature_graph('./data/glove')
+    # print(dataProcessor.load_graph())

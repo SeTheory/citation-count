@@ -15,10 +15,10 @@ import torch.nn.functional as F
 
 class RNN(BaseModel):
 
-    def __init__(self, vocab_size, embed_dim, num_class, pad_index, word2vec=None, keep_prob=0.5, pad_size=1500,
+    def __init__(self, vocab_size, embed_dim, num_class, pad_index, word2vec=None, dropout=0.5, pad_size=1500,
                  rnn_model='LSTM', hidden_size=256, num_layers=2, bidirectional=False, **kwargs):
-        super(RNN, self).__init__(vocab_size, embed_dim, num_class, pad_index, pad_size, word2vec, keep_prob)
-        self.model_name = 'RNN'
+        super(RNN, self).__init__(vocab_size, embed_dim, num_class, pad_index, pad_size, word2vec, dropout)
+        self.model_name = 'RNN_' + rnn_model
         # RNN模型参数设置
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -26,10 +26,10 @@ class RNN(BaseModel):
         # self.encoder = self.embedding
         print('bidirectional', bidirectional)
         self.bidirectional = bidirectional
-        self.encoder = RNNEncoder(rnn_model, 1, self.hidden_size, self.num_layers, keep_prob, self.bidirectional)
-        self.decoder = RNNDecoder(rnn_model, 1, self.hidden_size, self.num_layers, keep_prob)
+        self.encoder = RNNEncoder(rnn_model, 1, self.hidden_size, self.num_layers, dropout, self.bidirectional)
+        self.decoder = RNNDecoder(rnn_model, 1, self.hidden_size, self.num_layers, dropout)
 
-        self.drop_en = nn.Dropout(keep_prob)
+        self.drop_en = nn.Dropout(dropout)
         # self.bn2 = nn.BatchNorm1d(hidden_size*2)
         if self.bidirectional:
             self.fc = nn.Linear(hidden_size * 2, self.num_class)
@@ -37,7 +37,7 @@ class RNN(BaseModel):
             self.fc = nn.Linear(hidden_size, self.num_class)
         # self.to(self.device)
 
-    def forward(self, x, lengths, masks, **kwargs):
+    def forward(self, x, lengths, masks, ids, graph, **kwargs):
         # print(content.shape)
         content, inputs, valid_len = x
         x_embed = self.embedding(content)  # 不等长段落进行张量转化

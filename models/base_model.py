@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import json
 import math
 import random
 import logging
@@ -16,7 +17,7 @@ from utilis.scripts import eval_result, result_format
 
 
 class BaseModel(nn.Module):
-    def __init__(self, vocab_size, embed_dim, num_class, pad_index, pad_size=1500, word2vec=None, keep_prob=0.5,
+    def __init__(self, vocab_size, embed_dim, num_class, pad_index, pad_size=1500, word2vec=None, dropout=0.5,
                  model_path=None, **kwargs):
         super(BaseModel, self).__init__()
         # 最基本的模型参数
@@ -34,6 +35,7 @@ class BaseModel(nn.Module):
         self.warmup = False
         self.T = kwargs['T'] if 'T' in kwargs.keys() else 400
         self.seed = None
+        self.graph = None
         if 'seed' in kwargs.keys():
             self.seed = kwargs['seed']
         if self.warmup:
@@ -47,11 +49,11 @@ class BaseModel(nn.Module):
         # 初始化词嵌入权重
         print('init')
 
-    def forward(self, text, lengths, masks, **kwargs):
+    def forward(self, text, lengths, masks, ids, graph, **kwargs):
         # 运行前向函数
         return 'forward'
 
-    def train_model(self, dataloader, epoch, criterion, encoder_optimizer, decoder_optimizer):
+    def train_model(self, dataloader, epoch, criterion, encoder_optimizer, decoder_optimizer, graph=None):
         """
         最基本的模型训练方式，包括数据读取、轮次、损失函数和优化器
         根据需求进行扩展，添加相应的参数
@@ -65,6 +67,10 @@ class BaseModel(nn.Module):
         all_true_values = []
         teacher_forcing_ratio = 0.5
         all_loss = 0
+
+        if graph:
+            self.node_trans = graph['node_trans']
+            self.graph = graph['data'].to(self.device)
 
         for idx, (x, values, lengths, masks, ids) in enumerate(dataloader):
             loss = 0
@@ -81,8 +87,11 @@ class BaseModel(nn.Module):
 
             encoder_optimizer.zero_grad()
             decoder_optimizer.zero_grad()
-            packed_input, (h_0, c_0) = self(x, lengths, masks)
-            encoder_output, encoder_hidden = self.encoder(packed_input, (h_0, c_0))
+
+            if graph:
+                ids = torch.tensor(list(map(lambda x: self.node_trans[x], ids)))
+            packed_input, encoder_hidden = self(x, lengths, masks, ids, self.graph)
+            encoder_output, encoder_hidden = self.encoder(packed_input, encoder_hidden)
 
             decoder_input = values[:, 0, -1].unsqueeze(dim=-1).unsqueeze(dim=-1).float()
             decoder_hidden = encoder_hidden
@@ -158,22 +167,7 @@ class BaseModel(nn.Module):
     # def build(self, vocab_size, embed_dim, num_class):
     #     self.model_name = 'base_model'
 
-    def train_batch(self, dataloaders, epochs, lr=10e-4, criterion='MSE', optimizer='ADAM',
-                    scheduler=False, record_path=None, save_path=None):
-        """
-        整体多次训练模型，先更新参数再用验证集测试
-        输入主要包括训练集和验证集，训练轮次，损失函数，优化方法，自动调整学习率方法
-        """
-        final_results = []
-        train_dataloader, val_dataloader, test_dataloader = dataloaders
-        total_accu = None
-        val_accu_list = []
-        # 损失函数设定
-        if criterion == 'CrossEntropyLoss':
-            criterion = nn.CrossEntropyLoss()
-        elif criterion == 'MSE':
-            criterion = nn.MSELoss()
-        self.criterion = criterion
+    def get_optimizer(self, lr, optimizer):
         # 优化器设定
         if optimizer == 'SGD':
             encoder_optimizer = torch.optim.SGD(self.encoder.parameters(), lr=lr, weight_decay=1e-3)
@@ -192,6 +186,32 @@ class BaseModel(nn.Module):
             else:
                 encoder_optimizer = torch.optim.AdamW(self.encoder.parameters(), lr=lr)
                 decoder_optimizer = torch.optim.AdamW(self.decoder.parameters(), lr=lr)
+        else:
+            encoder_optimizer = torch.optim.SGD(self.encoder.parameters(), lr=lr, weight_decay=1e-3)
+            decoder_optimizer = torch.optim.SGD(self.decoder.parameters(), lr=lr, weight_decay=1e-3)
+        return encoder_optimizer, decoder_optimizer
+
+    def get_criterion(self, criterion):
+        # 损失函数设定
+        if criterion == 'CrossEntropyLoss':
+            criterion = nn.CrossEntropyLoss()
+        elif criterion == 'MSE':
+            criterion = nn.MSELoss()
+        self.criterion = criterion
+        return criterion
+
+    def train_batch(self, dataloaders, epochs, lr=10e-4, criterion='MSE', optimizer='ADAM',
+                    scheduler=False, record_path=None, save_path=None, graph=None):
+        """
+        整体多次训练模型，先更新参数再用验证集测试
+        输入主要包括训练集和验证集，训练轮次，损失函数，优化方法，自动调整学习率方法
+        """
+        final_results = []
+        train_dataloader, val_dataloader, test_dataloader = dataloaders
+
+        criterion = self.get_criterion(criterion)
+        encoder_optimizer, decoder_optimizer= self.get_optimizer(lr, optimizer)
+
         # 学习时自动调整学习速度
         # if self.warmup:
         #     self.scheduler = TriangularScheduler(optimizer, cut_frac=0.1, T=self.T, ratio=32)
@@ -209,24 +229,21 @@ class BaseModel(nn.Module):
                  + ',{}_loss,{}_mae,{}_r2,{}_mse,{}_rmse'.replace('{}', 'test') + '\n')
 
         for epoch in range(1, epochs + 1):
-            # epoch_log = open(record_path + '{}_epoch_{}.log'.format(self.model_name, epoch), 'w')
-            # print(record_path + '{}_epoch_{}.log'.format(self.model_name, epoch))
             logging.basicConfig(level=logging.INFO,
                                 filename=record_path + '{}_epoch_{}.log'.format(self.model_name, epoch),
                                 filemode='w+',
                                 format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s',
                                 force=True)
-            epoch_log = None
-            epoch_start_time = time.time()
-            train_results = self.train_model(train_dataloader, epoch, criterion, encoder_optimizer, decoder_optimizer)
+            # epoch_start_time = time.time()
+            train_results = self.train_model(train_dataloader, epoch, criterion, encoder_optimizer, decoder_optimizer, graph)
             val_results = self.evaluate(val_dataloader)
             test_results = self.test(test_dataloader)
             all_results = train_results + val_results + test_results
             fw.write(','.join([str(epoch)] + [str(round(x, 6)) for x in all_results]) + '\n')
             # acc, prec, recall, maf1, f1, auc, log_loss_value = val_results
             # val_accu_list.append(round(acc, 3))
-            # if save_path:
-            #     self.save_model(save_path + '{}_{}.pkl'.format(self.model_name, epoch))
+            if save_path:
+                self.save_model(save_path + '{}_{}.pkl'.format(self.model_name, epoch))
 
 
         fw.close()
@@ -261,8 +278,11 @@ class BaseModel(nn.Module):
                 lengths = lengths.to(self.device)
                 masks = masks.to(self.device)
 
-                packed_input, (h_0, c_0) = self(x, lengths, masks)
-                encoder_output, encoder_hidden = self.encoder(packed_input, (h_0, c_0))
+                if self.graph:
+                    ids = torch.tensor(list(map(lambda x: self.node_trans[x], ids)))
+
+                packed_input, encoder_hidden = self(x, lengths, masks, ids, self.graph)
+                encoder_output, encoder_hidden = self.encoder(packed_input, encoder_hidden)
 
                 decoder_input = values[:, 0, -1].unsqueeze(dim=-1).unsqueeze(dim=-1).float()
                 decoder_hidden = encoder_hidden
