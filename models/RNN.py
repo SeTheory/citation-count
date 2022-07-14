@@ -43,7 +43,7 @@ class RNN(BaseModel):
         x_embed = self.embedding(content)  # 不等长段落进行张量转化
         # x_embed = self.drop_en(x_embed)
         # 压缩向量
-        packed_input = pack_padded_sequence(inputs.unsqueeze(dim=-1).float(), valid_len.cpu().numpy(), batch_first=True, enforce_sorted=False)
+        packed_input = pack_padded_sequence(inputs[:, 0, :].unsqueeze(dim=-1).float(), valid_len.cpu().numpy(), batch_first=True, enforce_sorted=False)
         # 这里是输入的隐藏层也就是文本内容，这里直接依据序列长度做avgpool，然后和LSTM层数对齐
         h_0 = (x_embed.sum(dim=1)/lengths.unsqueeze(dim=-1)).unsqueeze(dim=0).repeat(self.num_layers * (int(self.bidirectional) + 1), 1, 1)
         c_0 = (x_embed.sum(dim=1)/lengths.unsqueeze(dim=-1)).unsqueeze(dim=0).repeat(self.num_layers * (int(self.bidirectional) + 1), 1, 1)
@@ -64,8 +64,8 @@ class RNNEncoder(nn.Module):
             print('No such RNN model!')
 
     def forward(self, packed_input, initial_state):
-        h_0, c_0 = initial_state
-        packed_output, ht = self.rnn(packed_input, (h_0, c_0))
+        # h_0, c_0 = initial_state
+        packed_output, ht = self.rnn(packed_input, initial_state)
         out_rnn, lens = pad_packed_sequence(packed_output, batch_first=True)
         # lens = lens.unsqueeze(dim=-1).unsqueeze(dim=-1).repeat(1, 1, out_rnn.shape[-1])
         # output = torch.gather(out_rnn, 1, lens - 1) # 取最后一个hs的，暂时不用gather
@@ -95,39 +95,39 @@ class RNNDecoder(nn.Module):
 
 
 if __name__ == '__main__':
-    if __name__ == '__main__':
-        start_time = datetime.datetime.now()
-        parser = argparse.ArgumentParser(description='Process some description.')
-        parser.add_argument('--phase', default='test', help='the function name.')
+    start_time = datetime.datetime.now()
+    parser = argparse.ArgumentParser(description='Process some description.')
+    parser.add_argument('--phase', default='test', help='the function name.')
 
-        args = parser.parse_args()
-        model = RNN(100, 10, 0, 0, hidden_size=10, num_layers=2)
-        content = torch.tensor([list(range(10)), list(range(10, 20))])
-        input_seq = torch.tensor([[1, 2, 3, 0, 0], [0, 1, 2, 3, 4]])
-        valid_len = torch.tensor([3, 5])
-        output_seq = torch.tensor([[4, 6, 8, 8, 8], [8, 12, 20, 32, 40]])
-        masks = []
-        lens = torch.tensor([5, 8])
-        x = [content, input_seq, valid_len]
-        pack, (h_0, c_0) = model(x, lens, masks)
-        print(h_0.shape)
-        encoder_output, encoder_hidden = model.encoder(pack, (h_0, c_0))
-        print(encoder_output.shape)
-        print(encoder_output[0])
-        print(encoder_hidden[0].shape)
-        print(encoder_hidden[1].shape)
+    args = parser.parse_args()
+    model = RNN(100, 10, 0, 0, hidden_size=10, num_layers=2)
+    content = torch.tensor([list(range(10)), list(range(10, 20))])
+    input_seq = torch.tensor([[1, 2, 3, 0, 0], [0, 1, 2, 3, 4]])
+    valid_len = torch.tensor([3, 5])
+    output_seq = torch.tensor([[4, 6, 8, 8, 8], [8, 12, 20, 32, 40]])
+    masks = []
+    lens = torch.tensor([5, 8])
+    x = [content, input_seq, valid_len]
+    ids = []
+    graph = None
+    pack, (h_0, c_0) = model(x, lens, masks, ids, graph)
+    encoder_output, encoder_hidden = model.encoder(pack, (h_0, c_0))
+    print(encoder_output.shape)
+    print(encoder_output[0])
+    print(encoder_hidden[0].shape)
+    print(encoder_hidden[1].shape)
 
-        decoder_input = torch.tensor([3, 4]).unsqueeze(dim=-1).unsqueeze(dim=-1).float()
-        decoder_hidden = encoder_hidden
-        decoder_output, (ht, ct) = model.decoder(decoder_input, decoder_hidden)
-        print(decoder_output)
-        print(ht.shape)
+    decoder_input = torch.tensor([3, 4]).unsqueeze(dim=-1).unsqueeze(dim=-1).float()
+    decoder_hidden = encoder_hidden
+    decoder_output, (ht, ct) = model.decoder(decoder_input, decoder_hidden)
+    print(decoder_output)
+    print(ht.shape)
 
-        if args.phase == 'test':
-            print('This is a test process.')
-        else:
-            print('error! No such method!')
-        end_time = datetime.datetime.now()
-        print('{} takes {} seconds'.format(args.phase, (end_time - start_time).seconds))
+    if args.phase == 'test':
+        print('This is a test process.')
+    else:
+        print('error! No such method!')
+    end_time = datetime.datetime.now()
+    print('{} takes {} seconds'.format(args.phase, (end_time - start_time).seconds))
 
-        print('Done simple_model!')
+    print('Done simple_model!')

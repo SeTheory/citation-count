@@ -93,8 +93,11 @@ class BaseModel(nn.Module):
             packed_input, encoder_hidden = self(x, lengths, masks, ids, self.graph)
             encoder_output, encoder_hidden = self.encoder(packed_input, encoder_hidden)
 
-            decoder_input = values[:, 0, -1].unsqueeze(dim=-1).unsqueeze(dim=-1).float()
+            inputs = x[-2]
+            decoder_input = inputs[:, 0, -1].unsqueeze(dim=-1).unsqueeze(dim=-1)
             decoder_hidden = encoder_hidden
+            input_target_tensor = inputs[:, 1, :].unsqueeze(dim=-1)
+
             target_tensor = values[:, 1, :].unsqueeze(dim=-1).float()
             target_length = target_tensor.shape[1]
             use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
@@ -107,10 +110,10 @@ class BaseModel(nn.Module):
                 for di in range(target_length):
                     decoder_output, decoder_hidden = self.decoder(
                         decoder_input, decoder_hidden)
-                    loss += criterion(decoder_output, target_tensor[:, di].unsqueeze(dim=1))
-                    predicted_values.append(decoder_output.squeeze().detach().cpu())
+                    loss += criterion(decoder_output, input_target_tensor[:, di].unsqueeze(dim=1))
+                    predicted_values.append(decoder_output.squeeze().detach().cpu() * dataloader.std + dataloader.mean)
                     true_values.append(target_tensor[:, di].squeeze().detach().cpu())
-                    decoder_input = target_tensor[:, di].unsqueeze(dim=1)  # Teacher forcing
+                    decoder_input = input_target_tensor[:, di].unsqueeze(dim=1)  # Teacher forcing
 
             else:
                 # Without teacher forcing: use its own predictions as the next input
@@ -121,8 +124,8 @@ class BaseModel(nn.Module):
                     # decoder_input = topi.squeeze().detach()  # detach from history as input
                     decoder_input = decoder_output
 
-                    loss += criterion(decoder_output, target_tensor[:, di].unsqueeze(dim=1))
-                    predicted_values.append(decoder_output.squeeze().detach().cpu())
+                    loss += criterion(decoder_output, input_target_tensor[:, di].unsqueeze(dim=1))
+                    predicted_values.append(decoder_output.squeeze().detach().cpu() * dataloader.std + dataloader.mean)
                     true_values.append(target_tensor[:, di].squeeze().detach().cpu())
 
             all_predicted_values.append(torch.stack(predicted_values))
@@ -134,6 +137,7 @@ class BaseModel(nn.Module):
             #     self.scheduler.step()
             encoder_optimizer.step()
             decoder_optimizer.step()
+
             print_loss = loss.item() / target_length
             all_loss += print_loss
             rmse = math.sqrt(print_loss)
@@ -239,6 +243,7 @@ class BaseModel(nn.Module):
             val_results = self.evaluate(val_dataloader)
             test_results = self.test(test_dataloader)
             all_results = train_results + val_results + test_results
+            # print(all_results)
             fw.write(','.join([str(epoch)] + [str(round(x, 6)) for x in all_results]) + '\n')
             # acc, prec, recall, maf1, f1, auc, log_loss_value = val_results
             # val_accu_list.append(round(acc, 3))
@@ -284,8 +289,11 @@ class BaseModel(nn.Module):
                 packed_input, encoder_hidden = self(x, lengths, masks, ids, self.graph)
                 encoder_output, encoder_hidden = self.encoder(packed_input, encoder_hidden)
 
-                decoder_input = values[:, 0, -1].unsqueeze(dim=-1).unsqueeze(dim=-1).float()
+                inputs = x[-2]
+                decoder_input = inputs[:, 0, -1].unsqueeze(dim=-1).unsqueeze(dim=-1)
                 decoder_hidden = encoder_hidden
+                input_target_tensor = inputs[:, 1, :].unsqueeze(dim=-1)
+
                 target_tensor = values[:, 1, :].unsqueeze(dim=-1).float()
                 target_length = target_tensor.shape[1]
 
@@ -295,13 +303,11 @@ class BaseModel(nn.Module):
                 for di in range(target_length):
                     decoder_output, decoder_hidden = self.decoder(
                         decoder_input, decoder_hidden)
-                    # topv, topi = decoder_output.topk(1)
-                    # decoder_input = topi.squeeze().detach()  # detach from history as input
                     decoder_input = decoder_output
 
-                    loss += self.criterion(decoder_output, target_tensor[:, di].unsqueeze(dim=1)).item() / target_length
-                    all_loss += loss
-                    predicted_values.append(decoder_output.squeeze().detach().cpu())
+                    loss += self.criterion(decoder_output, input_target_tensor[:, di].unsqueeze(dim=1))
+                    all_loss += loss.item() / target_length
+                    predicted_values.append(decoder_output.squeeze().detach().cpu() * dataloader.std + dataloader.mean)
                     true_values.append(target_tensor[:, di].squeeze().detach().cpu())
 
                 all_predicted_values.append(torch.stack(predicted_values))

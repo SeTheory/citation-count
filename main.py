@@ -8,6 +8,7 @@ import numpy as np
 from data_processor import *
 from models.RNN import RNN
 from models.RNNG import RNNG
+from models.RNNN import RNNN
 
 from utilis.scripts import get_configs
 
@@ -30,12 +31,20 @@ def get_model(model_name, config, vectors=None):
         model = RNNG(config['vocab_size'], config['hidden_size'], 0, config['pad_idx'],
                      word2vec=vectors, dropout=config['dropout'], rnn_model='GRU',
                      hidden_size=config['hidden_size'], num_layers=config['num_layers'])
+    elif model_name == 'LSTMN':
+        model = RNNN(config['vocab_size'], config['hidden_size'], 0, config['pad_idx'],
+                    word2vec=vectors, dropout=config['dropout'], rnn_model='LSTM',
+                    hidden_size=config['hidden_size'], num_layers=config['num_layers'])
+    elif model_name == 'GRUN':
+        model = RNNN(config['vocab_size'], config['hidden_size'], 0, config['pad_idx'],
+                    word2vec=vectors, dropout=config['dropout'], rnn_model='GRU',
+                    hidden_size=config['hidden_size'], num_layers=config['num_layers'])
     model.to(model.device)
     return model
 
 
-def train_single(data_source, model_name, config, seed=123):
-    dataProcessor = DataProcessor(data_source, max_len=config['max_len'], seed=seed)
+def train_single(data_source, model_name, config, seed=123, norm=False):
+    dataProcessor = DataProcessor(data_source, max_len=config['max_len'], seed=seed, norm=norm)
     dataProcessor.get_tokenizer(config['tokenizer_type'], config['tokenizer_path'])
     dataProcessor.get_dataloader(config['batch_size'])
     if config['use_graph']:
@@ -74,6 +83,7 @@ if __name__ == '__main__':
     parser.add_argument('--phase', default='LSTMG', help='the function name.')
     parser.add_argument('--ablation', default=None, help='the ablation modules.')
     parser.add_argument('--data_source', default='pubmed', help='the data source.')
+    parser.add_argument('--norm', default=False, help='the data norm.')
     parser.add_argument('--mode', default=None, help='the model mode.')
     parser.add_argument('--type', default='BERT', help='the model type.')
     parser.add_argument('--seed', default=123, help='the data seed.')
@@ -89,10 +99,10 @@ if __name__ == '__main__':
     setup_seed(MODEL_SEED)  # 模型种子固定为123，数据种子根据输入修改
     print('model_seed', MODEL_SEED)
 
-    model_list = ['LSTM', 'GRU', 'LSTMG', 'GRUG']
+    model_list = ['LSTM', 'GRU', 'LSTMG', 'GRUG', 'LSTMN', 'GRUN']
     configs = get_configs(args.data_source, model_list)
 
     if args.phase in model_list:
-        train_single(args.data_source, args.phase, configs[args.phase], args.seed)
+        train_single(args.data_source, args.phase, configs[args.phase], args.seed, args.norm)
         print('{} done'.format(args.phase))
 

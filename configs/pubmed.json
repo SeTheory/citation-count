@@ -33,5 +33,21 @@
     "tokenizer_path": "./data/glove",
     "use_graph": true,
     "graph_name": "graph_sample_feature"
+  },
+  "GRUG": {
+    "hidden_size": 300,
+    "num_layers": 2,
+    "tokenizer_type": "glove",
+    "tokenizer_path": "./data/glove",
+    "use_graph": true,
+    "graph_name": "graph_sample_feature"
+  },
+  "LSTMN": {
+    "hidden_size": 300,
+    "num_layers": 2
+  },
+  "GRUN": {
+    "hidden_size": 300,
+    "num_layers": 2
   }
 }

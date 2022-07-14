@@ -4,6 +4,7 @@ import json
 import random
 import re
 
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from torchtext.data.utils import get_tokenizer
@@ -22,7 +23,7 @@ UNK, PAD, SEP = '[UNK]', '[PAD]', '[SEP]'
 
 
 class DataProcessor:
-    def __init__(self, data_source, max_len=256, seed=123):
+    def __init__(self, data_source, max_len=256, seed=123, norm=False):
         print('Init...')
         self.data_root = './data/'
         self.data_source = data_source
@@ -30,6 +31,9 @@ class DataProcessor:
         self.max_len = max_len
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.tokenizer = None
+        self.mean = 0
+        self.std = 1
+        self.norm = norm
         if self.data_source == 'pubmed':
             self.data_cat_path = self.data_root + self.data_source + '/'
         elif self.data_source == 's2orc':
@@ -94,12 +98,21 @@ class DataProcessor:
     def get_dataloader(self, batch_size=32, num_workers=0):
         data = torch.load(self.data_cat_path + 'split_data')
         # all_last_values = map(lambda x: x[1][-1], data['train'][1])
-        train_dataloader = DataLoader(dataset=list(zip(*data['train'])), batch_size=batch_size,
-                                      shuffle=True, num_workers=num_workers, collate_fn=self.collate_batch)
-        val_dataloader = DataLoader(dataset=list(zip(*data['val'])), batch_size=batch_size,
-                                    shuffle=True, num_workers=num_workers, collate_fn=self.collate_batch)
-        test_dataloader = DataLoader(dataset=list(zip(*data['test'])), batch_size=batch_size,
-                                     shuffle=True, num_workers=num_workers, collate_fn=self.collate_batch)
+        if self.norm:
+            all_train_values = np.sum(list(map(lambda x: [num for num in (x[0] + x[1]) if num >= 0], data['train'][1])))
+            self.mean = np.mean(all_train_values)
+            self.std = np.std(all_train_values)
+            print(self.mean)
+            print(self.std)
+        train_dataloader = CustomDataLoader(dataset=list(zip(*data['train'])), batch_size=batch_size,
+                                      shuffle=True, num_workers=num_workers, collate_fn=self.collate_batch,
+                                            mean=self.mean, std=self.std)
+        val_dataloader = CustomDataLoader(dataset=list(zip(*data['val'])), batch_size=batch_size,
+                                    shuffle=True, num_workers=num_workers, collate_fn=self.collate_batch,
+                                          mean=self.mean, std=self.std)
+        test_dataloader = CustomDataLoader(dataset=list(zip(*data['test'])), batch_size=batch_size,
+                                     shuffle=True, num_workers=num_workers, collate_fn=self.collate_batch,
+                                           mean=self.mean, std=self.std)
         self.dataloaders = [train_dataloader, val_dataloader, test_dataloader]
         return self.dataloaders
 
@@ -137,14 +150,16 @@ class DataProcessor:
         }
         return self.graph
 
-    @staticmethod
-    def values_pipeline(values):
+    def values_pipeline(self, values):
         inputs = values[0]
-        outputs = values[1]
+        outputs = np.array(values[1])
         inputs = list(filter(lambda x: x >= 0, inputs))
         valid_len = len(inputs)
-        inputs = inputs + [0] * (len(outputs) - valid_len)
-        return inputs, valid_len, outputs
+        inputs = np.array(inputs + [0] * (len(outputs) - valid_len))
+        inputs = np.stack([inputs, outputs], axis=0)
+        if self.norm:
+            inputs = (inputs - self.mean) / self.std
+        return inputs, valid_len
 
     def collate_batch(self, batch):
         values_list, content_list = [], []
@@ -158,7 +173,7 @@ class DataProcessor:
             # # print(_label)
             processed_content, seq_len, mask = self.tokenizer.encode(_contents)
             # values_list.append(_values)
-            inputs, valid_len, outputs = self.values_pipeline(_values)
+            inputs, valid_len = self.values_pipeline(_values)
             # values_list.append(self.label_pipeline(_values))
             values_list.append(_values)
             inputs_list.append(inputs)
@@ -172,7 +187,7 @@ class DataProcessor:
         # 固定长度转换为张量
         content_batch = torch.tensor(content_list, dtype=torch.int64)
         values_list = torch.tensor(values_list, dtype=torch.int64)
-        inputs_list = torch.tensor(inputs_list, dtype=torch.int64)
+        inputs_list = torch.tensor(inputs_list, dtype=torch.float32)
         valid_lens = torch.tensor(valid_lens, dtype=torch.int8)
         length_list = torch.tensor(length_list, dtype=torch.int64)
         mask_list = torch.tensor(mask_list, dtype=torch.int8)
@@ -181,6 +196,14 @@ class DataProcessor:
         content_list = [content_batch, inputs_list, valid_lens]
         return content_list, values_list, length_list, \
                mask_list, ids_list
+
+
+class CustomDataLoader(DataLoader):
+    def __init__(self, dataset, batch_size=32, shuffle=True, num_workers=0, collate_fn=None, mean=0, std=1):
+        super(CustomDataLoader, self).__init__(dataset=dataset, batch_size=batch_size,
+                                               shuffle=shuffle, num_workers=num_workers, collate_fn=collate_fn)
+        self.mean = mean
+        self.std = std
 
 
 class BasicTokenizer:
@@ -207,7 +230,6 @@ class BasicTokenizer:
         except Exception as e:
             print(e)
             self.build_vocab(text_list, seed)
-
 
     def encode(self, text):
         tokens = self.tokenizer(text)
@@ -306,7 +328,7 @@ if __name__ == "__main__":
     start_time = datetime.datetime.now()
     parser = argparse.ArgumentParser(description='Process some description.')
 
-    parser.add_argument('--phase', default='make_data_graph', help='the function name.')
+    parser.add_argument('--phase', default='test', help='the function name.')
     parser.add_argument('--data_source', default='pubmed', help='the data source.')
     parser.add_argument('--seed', default=123, help='the data seed.')
 
@@ -314,22 +336,24 @@ if __name__ == "__main__":
     configs = get_configs(args.data_source, [])
 
     if args.phase == 'test':
-        dataProcessor = DataProcessor('pubmed')
+        dataProcessor = DataProcessor('pubmed', norm=True)
         # dataProcessor.split_data()
         # tokenizer = VectorTokenizer(vector_path='./data/glove', data_path='pubmed')
         # tokenizer.load_vocab()
         # print(tokenizer.vocab.get_stoi())
-        dataProcessor.get_tokenizer('glove', './data/glove')
-        # dataProcessor.get_tokenizer()
-        # dataloader = dataProcessor.get_dataloader()[2]
-        # for idx, (content, value, lens, mask, id) in enumerate(dataloader):
-        #     # if idx == 0:
-        #     print(content)
-        #     print(content[0].shape)
-        #     print(value)
-        #     print(id)
-        #
-        #     print(lens)
+        # dataProcessor.get_tokenizer('glove', './data/glove')
+        dataProcessor.get_tokenizer()
+        dataloader = dataProcessor.get_dataloader()[2]
+        print(dataloader.mean)
+        print(dataloader.std)
+        for idx, (content, value, lens, mask, id) in enumerate(dataloader):
+            if idx == 0:
+                print(content)
+                print(content[0].shape)
+                print(value)
+                print(id)
+
+                print(lens)
         # dataProcessor.get_feature_graph('./data/glove')
         # print(dataProcessor.load_graph())
     elif args.phase == 'make_data':
