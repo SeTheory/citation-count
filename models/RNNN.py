@@ -19,7 +19,7 @@ class RNNN(RNN):
         # x_embed = self.embedding(content)  # 不等长段落进行张量转化
         # x_embed = self.drop_en(x_embed)
         # 压缩向量
-        packed_input = pack_padded_sequence(inputs.unsqueeze(dim=-1).float(), valid_len.cpu().numpy(), batch_first=True,
+        packed_input = pack_padded_sequence(inputs[:, 0, :].unsqueeze(dim=-1).float(), valid_len.cpu().numpy(), batch_first=True,
                                             enforce_sorted=False)
 
         return packed_input, None
