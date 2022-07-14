@@ -9,6 +9,7 @@ from data_processor import *
 from models.RNN import RNN
 from models.RNNG import RNNG
 from models.RNNN import RNNN
+from models.RNNG_BERT import RNNGBERT
 
 from utilis.scripts import get_configs
 
@@ -39,6 +40,14 @@ def get_model(model_name, config, vectors=None):
         model = RNNN(config['vocab_size'], config['hidden_size'], 0, config['pad_idx'],
                     word2vec=vectors, dropout=config['dropout'], rnn_model='GRU',
                     hidden_size=config['hidden_size'], num_layers=config['num_layers'])
+    elif model_name == 'LSTMGB':
+        model = RNNGBERT(config['vocab_size'], config['embed_size'], 0, config['pad_idx'],
+                     word2vec=vectors, dropout=config['dropout'], rnn_model='LSTM',
+                     hidden_size=config['hidden_size'], num_layers=config['num_layers'], bert_path=config['tokenizer_path'])
+    elif model_name == 'GRUGB':
+        model = RNNGBERT(config['vocab_size'], config['embed_size'], 0, config['pad_idx'],
+                     word2vec=vectors, dropout=config['dropout'], rnn_model='GRU',
+                     hidden_size=config['hidden_size'], num_layers=config['num_layers'], bert_path=config['tokenizer_path'])
     model.to(model.device)
     return model
 
@@ -80,7 +89,7 @@ if __name__ == '__main__':
     start_time = datetime.datetime.now()
     parser = argparse.ArgumentParser(description='Process some description.')
 
-    parser.add_argument('--phase', default='LSTMN', help='the function name.')
+    parser.add_argument('--phase', default='LSTMGB', help='the function name.')
     parser.add_argument('--ablation', default=None, help='the ablation modules.')
     parser.add_argument('--data_source', default='pubmed', help='the data source.')
     parser.add_argument('--norm', default=False, help='the data norm.')
@@ -99,7 +108,7 @@ if __name__ == '__main__':
     setup_seed(MODEL_SEED)  # 模型种子固定为123，数据种子根据输入修改
     print('model_seed', MODEL_SEED)
 
-    model_list = ['LSTM', 'GRU', 'LSTMG', 'GRUG', 'LSTMN', 'GRUN']
+    model_list = ['LSTM', 'GRU', 'LSTMG', 'GRUG', 'LSTMN', 'GRUN', 'LSTMGB', 'GRUGB']
     configs = get_configs(args.data_source, model_list)
 
     if args.phase in model_list:

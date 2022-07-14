@@ -47,10 +47,8 @@ if __name__ == '__main__':
 
     decoder_input = torch.tensor([3, 4]).unsqueeze(dim=-1).unsqueeze(dim=-1).float()
     decoder_hidden = encoder_hidden
-    decoder_output, (ht, ct) = model.decoder(decoder_input, decoder_hidden)
+    decoder_output, hs = model.decoder(decoder_input, decoder_hidden)
     print(decoder_output)
-    print(ht.shape)
-
     if args.phase == 'test':
         print('This is a test process.')
     else:

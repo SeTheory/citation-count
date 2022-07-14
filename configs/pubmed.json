@@ -35,12 +35,32 @@
     "graph_name": "graph_sample_feature"
   },
   "GRUG": {
-    "hidden_size": 300,
+    "hidden_size": 768,
     "num_layers": 2,
     "tokenizer_type": "glove",
-    "tokenizer_path": "./data/glove",
+    "tokenizer_path": "./bert/scibert/",
     "use_graph": true,
     "graph_name": "graph_sample_feature"
+  },
+  "LSTMGB": {
+    "embed_size": 768,
+    "hidden_size": 256,
+    "num_layers": 2,
+    "batch_size": 4,
+    "tokenizer_type": "bert",
+    "tokenizer_path": "./bert/scibert/",
+    "use_graph": true,
+    "graph_name": "graph_sample_feature_bert"
+  },
+  "GRUGB": {
+    "embed_size": 768,
+    "hidden_size": 768,
+    "num_layers": 2,
+    "batch_size": 4,
+    "tokenizer_type": "bert",
+    "tokenizer_path": "./bert/scibert/",
+    "use_graph": true,
+    "graph_name": "graph_sample_feature_bert"
   },
   "LSTMN": {
     "hidden_size": 300,
