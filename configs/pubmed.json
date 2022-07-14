@@ -3,7 +3,7 @@
     "tokenizer_type": "basic",
     "tokenizer_path": null,
     "embed_dim": 300,
-    "batch_size": 16,
+    "batch_size": 32,
     "max_len": 256,
     "epochs": 50,
     "rate":0.8,
