@@ -1,14 +1,16 @@
 import argparse
 import datetime
 import json
+import os
 import random
 import re
 
 import numpy as np
 import torch
+from tqdm import tqdm
 from torch.utils.data import DataLoader
 from torchtext.data.utils import get_tokenizer
-from transformers import BertTokenizer
+from transformers import BertTokenizer, BertModel
 from torchtext.vocab import build_vocab_from_iterator, Vectors, vocab
 from utilis.scripts import get_configs
 
@@ -94,6 +96,7 @@ class DataProcessor:
 
         data = torch.load(self.data_cat_path + 'split_data')
         self.tokenizer.load_vocab(data['train'][2], seed=self.seed)
+        return self.tokenizer
 
     def get_dataloader(self, batch_size=32, num_workers=0):
         data = torch.load(self.data_cat_path + 'split_data')
@@ -116,7 +119,10 @@ class DataProcessor:
         self.dataloaders = [train_dataloader, val_dataloader, test_dataloader]
         return self.dataloaders
 
-    def get_feature_graph(self, tokenizer_path, mode='vector'):
+    def get_feature_graph(self, tokenizer_type, tokenizer_path, name='graph_sample_feature', mode='vector'):
+        print(name)
+        print(tokenizer_path)
+        print('graph mode:', mode)
         graph = torch.load(self.data_cat_path + 'graph_sample')
         info_dict = json.load(open(self.data_cat_path + 'sample_info_dict.json', 'r'))
         node_trans = json.load(open(self.data_cat_path + 'sample_node_trans.json', 'r'))
@@ -134,16 +140,51 @@ class DataProcessor:
             self.tokenizer.load_vocab()
             print(self.tokenizer.vectors.shape)
 
-            for abstract in abstracts:
+            for abstract in tqdm(abstracts):
                 processed_content, seq_len, mask = self.tokenizer.encode(abstract)
                 node_embedding = self.tokenizer.vectors[processed_content][:seq_len].mean(dim=0, keepdim=True)
                 feature_list.append(node_embedding)
 
-            graph.ndata['h'] = torch.cat(feature_list, dim=0)
-            print(graph.ndata['h'].shape)
-        torch.save(graph, self.data_cat_path + 'graph_sample_feature')
+        elif mode == 'bert':
+            print('取倒数第二层所有token的avgpool')
+            self.tokenizer = CustomBertTokenizer(max_len=self.max_len, bert_path=tokenizer_path)
+            self.tokenizer.load_vocab()
+            print(self.tokenizer.tokenizer)
+            bert_model = BertModel.from_pretrained(tokenizer_path, return_dict=True, output_hidden_states=True).to(self.device)
+
+            for abstract in tqdm(abstracts):
+                processed_content, seq_len, mask = self.tokenizer.encode(abstract)
+                tokens = torch.tensor(processed_content).unsqueeze(dim=0).to(self.device)
+                mask = torch.tensor(mask).unsqueeze(dim=0).to(self.device)
+                output = bert_model(tokens, attention_mask=mask)
+                node_embedding = output['hidden_states'][-2][0, :seq_len].mean(dim=0, keepdim=True).detach().cpu()
+                # print(node_embedding.shape)
+                feature_list.append(node_embedding)
+
+        elif mode == 'token':
+            self.get_tokenizer(tokenizer_type, tokenizer_path)
+            self.tokenizer.load_vocab()
+            seq_lens = []
+            masks = []
+
+            for abstract in tqdm(abstracts):
+                processed_content, seq_len, mask = self.tokenizer.encode(abstract)
+                processed_content = torch.tensor(processed_content).unsqueeze(dim=0)
+                seq_len = torch.tensor(seq_len).unsqueeze(dim=0)
+                mask = torch.tensor(mask).unsqueeze(dim=0)
+                feature_list.append(processed_content)
+                seq_lens.append(seq_len)
+                masks.append(mask)
+
+            graph.ndata['seq_len'] = torch.cat(seq_lens, dim=0)
+            graph.ndata['mask'] = torch.cat(masks, dim=0)
+
+        graph.ndata['h'] = torch.cat(feature_list, dim=0)
+        print(graph.ndata['h'].shape)
+        torch.save(graph, self.data_cat_path + name + '_' + mode)
 
     def load_graph(self, graph_name='graph_sample_feature'):
+        print(graph_name)
         self.graph = {
             'data': torch.load(self.data_cat_path + graph_name),
             'node_trans': json.load(open(self.data_cat_path + 'sample_node_trans.json', 'r'))
@@ -316,12 +357,12 @@ class VectorTokenizer(BasicTokenizer):
             self.build_vocab()
 
 
-def make_data(data_source, config, seed=True, use_graph=False):
+def make_data(data_source, config, seed=True, graph=None):
     dataProcessor = DataProcessor(data_source, seed=int(seed))
     dataProcessor.split_data(config['rate'], config['fixed_num'])
     dataProcessor.get_tokenizer(config['tokenizer_type'], config['tokenizer_path'])
-    if use_graph:
-        dataProcessor.get_feature_graph(config['tokenizer_path'], config['mode'])
+    if graph:
+        dataProcessor.get_feature_graph(config['tokenizer_type'], config['tokenizer_path'], mode=graph)
 
 
 if __name__ == "__main__":
@@ -331,8 +372,10 @@ if __name__ == "__main__":
     parser.add_argument('--phase', default='test', help='the function name.')
     parser.add_argument('--data_source', default='pubmed', help='the data source.')
     parser.add_argument('--seed', default=123, help='the data seed.')
+    parser.add_argument('--graph', default=None, help='the graph embed.')
 
     args = parser.parse_args()
+    print(args)
     configs = get_configs(args.data_source, [])
 
     if args.phase == 'test':
@@ -342,26 +385,31 @@ if __name__ == "__main__":
         # tokenizer.load_vocab()
         # print(tokenizer.vocab.get_stoi())
         # dataProcessor.get_tokenizer('glove', './data/glove')
-        dataProcessor.get_tokenizer()
-        dataloader = dataProcessor.get_dataloader()[2]
-        print(dataloader.mean)
-        print(dataloader.std)
-        for idx, (content, value, lens, mask, id) in enumerate(dataloader):
-            if idx == 0:
-                print(content)
-                print(content[0].shape)
-                print(value)
-                print(id)
-
-                print(lens)
-        # dataProcessor.get_feature_graph('./data/glove')
+        # dataProcessor.get_tokenizer()
+        # dataloader = dataProcessor.get_dataloader()[2]
+        # print(dataloader.mean)
+        # print(dataloader.std)
+        # for idx, (content, value, lens, mask, id) in enumerate(dataloader):
+        #     if idx == 0:
+        #         print(content)
+        #         print(content[0].shape)
+        #         print(value)
+        #         print(id)
+        #
+        #         print(lens)
+        # dataProcessor.get_feature_graph(None, './bert/scibert/', mode='bert')
+        # dataProcessor.get_feature_graph('glove', './data/glove', mode='token')
+        dataProcessor.get_feature_graph('glove', './data/glove', mode='vector')
         # print(dataProcessor.load_graph())
     elif args.phase == 'make_data':
         temp_config = configs['default']
         make_data(args.data_source, temp_config, seed=args.seed)
     elif args.phase == 'make_data_graph':
         temp_config = configs['default']
-        temp_config['tokenizer_type'] = 'glove'
-        temp_config['tokenizer_path'] = './data/glove'
-        temp_config['mode'] = 'vector'
-        make_data(args.data_source, temp_config, seed=args.seed, use_graph=True)
+        if args.graph == 'vector':
+            temp_config['tokenizer_type'] = 'glove'
+            temp_config['tokenizer_path'] = './data/glove'
+        elif args.graph == 'bert':
+            temp_config['tokenizer_type'] = 'bert'
+            temp_config['tokenizer_path'] = './bert/scibert/'
+        make_data(args.data_source, temp_config, seed=args.seed, graph=args.graph)

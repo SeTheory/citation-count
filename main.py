@@ -80,7 +80,7 @@ if __name__ == '__main__':
     start_time = datetime.datetime.now()
     parser = argparse.ArgumentParser(description='Process some description.')
 
-    parser.add_argument('--phase', default='LSTMG', help='the function name.')
+    parser.add_argument('--phase', default='LSTMN', help='the function name.')
     parser.add_argument('--ablation', default=None, help='the ablation modules.')
     parser.add_argument('--data_source', default='pubmed', help='the data source.')
     parser.add_argument('--norm', default=False, help='the data norm.')
