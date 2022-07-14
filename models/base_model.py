@@ -171,28 +171,30 @@ class BaseModel(nn.Module):
     # def build(self, vocab_size, embed_dim, num_class):
     #     self.model_name = 'base_model'
 
+    def get_params(self):
+        decoder_params_set = list(map(id, self.decoder.parameters()))
+        decoder_params = self.decoder.parameters()
+        encoder_params = filter(lambda p: id(p) not in decoder_params_set, self.parameters())
+        return encoder_params, decoder_params
+
     def get_optimizer(self, lr, optimizer):
         # 优化器设定
+        # encoder_parameter = [parameter for parameter in self.parameters() if parameter not in self.decoder.parameters]
+        encoder_params, decoder_params = self.get_params()
+        # if self.warmup:
+        #     encoder_params, decoder_params = self.get_special_parms(lr)
         if optimizer == 'SGD':
-            encoder_optimizer = torch.optim.SGD(self.encoder.parameters(), lr=lr, weight_decay=1e-3)
-            decoder_optimizer = torch.optim.SGD(self.decoder.parameters(), lr=lr, weight_decay=1e-3)
+            encoder_optimizer = torch.optim.SGD(encoder_params, lr=lr, weight_decay=1e-3)
+            decoder_optimizer = torch.optim.SGD(decoder_params, lr=lr, weight_decay=1e-3)
         elif optimizer == 'ADAM':
-            if self.adaptive_lr:
-                encoder_optimizer = torch.optim.Adam(self.encoder.get_group_parameters(lr), lr=lr, weight_decay=0)
-                decoder_optimizer = torch.optim.Adam(self.decoder.get_group_parameters(lr), lr=lr, weight_decay=0)
-            else:
-                encoder_optimizer = torch.optim.Adam(self.encoder.parameters(), lr=lr, weight_decay=1e-3)
-                decoder_optimizer = torch.optim.Adam(self.decoder.parameters(), lr=lr, weight_decay=1e-3)
+            encoder_optimizer = torch.optim.Adam(encoder_params, lr=lr, weight_decay=1e-3)
+            decoder_optimizer = torch.optim.Adam(decoder_params, lr=lr, weight_decay=1e-3)
         elif optimizer == 'ADAMW':
-            if self.adaptive_lr:
-                encoder_optimizer = torch.optim.AdamW(self.encoder.get_group_parameters(lr), lr=lr)
-                decoder_optimizer = torch.optim.AdamW(self.decoder.get_group_parameters(lr), lr=lr)
-            else:
-                encoder_optimizer = torch.optim.AdamW(self.encoder.parameters(), lr=lr)
-                decoder_optimizer = torch.optim.AdamW(self.decoder.parameters(), lr=lr)
+            encoder_optimizer = torch.optim.AdamW(encoder_params, lr=lr)
+            decoder_optimizer = torch.optim.AdamW(decoder_params, lr=lr)
         else:
-            encoder_optimizer = torch.optim.SGD(self.encoder.parameters(), lr=lr, weight_decay=1e-3)
-            decoder_optimizer = torch.optim.SGD(self.decoder.parameters(), lr=lr, weight_decay=1e-3)
+            encoder_optimizer = torch.optim.SGD(encoder_params, lr=lr, weight_decay=1e-3)
+            decoder_optimizer = torch.optim.SGD(decoder_params, lr=lr, weight_decay=1e-3)
         return encoder_optimizer, decoder_optimizer
 
     def get_criterion(self, criterion):

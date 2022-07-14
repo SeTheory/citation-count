@@ -5,7 +5,7 @@
     "embed_dim": 300,
     "batch_size": 16,
     "max_len": 256,
-    "epochs": 5,
+    "epochs": 50,
     "rate":0.8,
     "fixed_num": false,
     "optimizer": "ADAM",

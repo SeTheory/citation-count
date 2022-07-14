@@ -12,7 +12,6 @@ class RNNN(RNN):
                  rnn_model='LSTM', hidden_size=256, num_layers=2, bidirectional=False, **kwargs):
         super(RNNN, self).__init__(vocab_size, embed_dim, num_class, pad_index, word2vec, dropout, pad_size,
                                    rnn_model, hidden_size, num_layers, bidirectional, **kwargs)
-        self.model_name = 'RNNN_' + rnn_model
 
     def forward(self, x, lengths, masks, ids, graph, **kwargs):
         # print(content.shape)
@@ -20,7 +19,7 @@ class RNNN(RNN):
         # x_embed = self.embedding(content)  # 不等长段落进行张量转化
         # x_embed = self.drop_en(x_embed)
         # 压缩向量
-        packed_input = pack_padded_sequence(inputs[:, 0, :].unsqueeze(dim=-1).float(), valid_len.cpu().numpy(), batch_first=True,
+        packed_input = pack_padded_sequence(inputs.unsqueeze(dim=-1).float(), valid_len.cpu().numpy(), batch_first=True,
                                             enforce_sorted=False)
 
         return packed_input, None
@@ -31,7 +30,7 @@ if __name__ == '__main__':
     parser.add_argument('--phase', default='test', help='the function name.')
 
     args = parser.parse_args()
-    model = RNNN(100, 10, 0, 0, hidden_size=10, num_layers=2)
+    model = RNN(100, 10, 0, 0, hidden_size=10, num_layers=2)
     content = torch.tensor([list(range(10)), list(range(10, 20))])
     input_seq = torch.tensor([[1, 2, 3, 0, 0], [0, 1, 2, 3, 4]])
     valid_len = torch.tensor([3, 5])
@@ -39,9 +38,7 @@ if __name__ == '__main__':
     masks = []
     lens = torch.tensor([5, 8])
     x = [content, input_seq, valid_len]
-    ids, graph = [], None
-    pack, hs = model(x, lens, masks, ids, graph)
-    print(hs)
+    pack, hs = model(x, lens, masks)
     encoder_output, encoder_hidden = model.encoder(pack, hs)
     print(encoder_output.shape)
     print(encoder_output[0])

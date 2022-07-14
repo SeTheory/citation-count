@@ -30,11 +30,12 @@ class RNN(BaseModel):
         self.decoder = RNNDecoder(rnn_model, 1, self.hidden_size, self.num_layers, dropout)
 
         self.drop_en = nn.Dropout(dropout)
+        self.rnn_model = rnn_model
         # self.bn2 = nn.BatchNorm1d(hidden_size*2)
-        if self.bidirectional:
-            self.fc = nn.Linear(hidden_size * 2, self.num_class)
-        else:
-            self.fc = nn.Linear(hidden_size, self.num_class)
+        # if self.bidirectional:
+        #     self.fc = nn.Linear(hidden_size * 2, self.num_class)
+        # else:
+        #     self.fc = nn.Linear(hidden_size, self.num_class)
         # self.to(self.device)
 
     def forward(self, x, lengths, masks, ids, graph, **kwargs):
@@ -46,9 +47,13 @@ class RNN(BaseModel):
         packed_input = pack_padded_sequence(inputs[:, 0, :].unsqueeze(dim=-1).float(), valid_len.cpu().numpy(), batch_first=True, enforce_sorted=False)
         # 这里是输入的隐藏层也就是文本内容，这里直接依据序列长度做avgpool，然后和LSTM层数对齐
         h_0 = (x_embed.sum(dim=1)/lengths.unsqueeze(dim=-1)).unsqueeze(dim=0).repeat(self.num_layers * (int(self.bidirectional) + 1), 1, 1)
-        c_0 = (x_embed.sum(dim=1)/lengths.unsqueeze(dim=-1)).unsqueeze(dim=0).repeat(self.num_layers * (int(self.bidirectional) + 1), 1, 1)
+        if self.rnn_model == 'LSTM':
+            c_0 = (x_embed.sum(dim=1)/lengths.unsqueeze(dim=-1)).unsqueeze(dim=0).repeat(self.num_layers * (int(self.bidirectional) + 1), 1, 1)
+            hs = (h_0, c_0)
+        else:
+            hs = h_0
 
-        return packed_input, (h_0, c_0)
+        return packed_input, hs
 
 
 class RNNEncoder(nn.Module):
@@ -88,8 +93,8 @@ class RNNDecoder(nn.Module):
         self.activation = nn.Tanh()
 
     def forward(self, cur_input, initial_state):
-        h_0, c_0 = initial_state
-        out_rnn, ht = self.rnn(cur_input, (h_0, c_0))
+        # h_0, c_0 = initial_state
+        out_rnn, ht = self.rnn(cur_input, initial_state)
         output = self.fc(self.activation(out_rnn))
         return output, ht
 
@@ -102,7 +107,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     model = RNN(100, 10, 0, 0, hidden_size=10, num_layers=2)
     content = torch.tensor([list(range(10)), list(range(10, 20))])
-    input_seq = torch.tensor([[1, 2, 3, 0, 0], [0, 1, 2, 3, 4]])
+    input_seq = torch.tensor([[[1, 2, 3, 0, 0],[0,0,0,0,0]],[[0, 1, 2, 3, 4], [0,0,0,0,0]]])
     valid_len = torch.tensor([3, 5])
     output_seq = torch.tensor([[4, 6, 8, 8, 8], [8, 12, 20, 32, 40]])
     masks = []
@@ -122,6 +127,12 @@ if __name__ == '__main__':
     decoder_output, (ht, ct) = model.decoder(decoder_input, decoder_hidden)
     print(decoder_output)
     print(ht.shape)
+
+    decoder_params = list(map(id, model.decoder.parameters()))
+    encoder_params = list(filter(lambda p: id(p) not in decoder_params, model.parameters()))
+    print(len(decoder_params))
+    print(len(encoder_params))
+    print(len(list(model.parameters())))
 
     if args.phase == 'test':
         print('This is a test process.')

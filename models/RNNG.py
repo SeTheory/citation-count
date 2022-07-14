@@ -31,9 +31,14 @@ class RNNG(RNN):
         packed_input = pack_padded_sequence(inputs[:, 0, :].unsqueeze(dim=-1).float(), valid_len.cpu().numpy(), batch_first=True, enforce_sorted=False)
         # 这里是输入的隐藏层也就是文本内容，这里直接依据序列长度做avgpool，然后和LSTM层数对齐
         h_0 = mixed_embed.unsqueeze(dim=0).repeat(self.num_layers * (int(self.bidirectional) + 1), 1, 1)
-        c_0 = mixed_embed.unsqueeze(dim=0).repeat(self.num_layers * (int(self.bidirectional) + 1), 1, 1)
+        if self.rnn_model == 'LSTM':
+            c_0 = mixed_embed.unsqueeze(dim=0).repeat(self.num_layers * (int(self.bidirectional) + 1), 1, 1)
+            hs = (h_0, c_0)
+        else:
+            hs = h_0
 
-        return packed_input, (h_0, c_0)
+        return packed_input, hs
+
 
 
 if __name__ == '__main__':
@@ -44,7 +49,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     model = RNNG(100, 10, 0, 0, hidden_size=10, num_layers=2)
     content = torch.tensor([list(range(10)), list(range(10, 20))])
-    input_seq = torch.tensor([[1, 2, 3, 0, 0], [0, 1, 2, 3, 4]])
+    input_seq = torch.tensor([[[1, 2, 3, 0, 0],[0,0,0,0,0]],[[0, 1, 2, 3, 4], [0,0,0,0,0]]])
     valid_len = torch.tensor([3, 5])
     output_seq = torch.tensor([[4, 6, 8, 8, 8], [8, 12, 20, 32, 40]])
     masks = []
